@@ -9,7 +9,7 @@ class MetricData(torch.utils.data.Dataset):
     def __init__(self, data_root, anno_file, idx_file):
         if idx_file.endswith('pkl'):
             with open(idx_file, 'rb') as f:
-                self.idx = pickle.laod(f)
+                self.idx = pickle.load(f)
         assert anno_file.endswith('mat')
         self.anno = sio.loadmat(anno_file)['annotations']
         self._convert_labels()
