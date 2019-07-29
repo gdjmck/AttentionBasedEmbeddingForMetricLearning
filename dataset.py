@@ -33,7 +33,6 @@ class MetricData(torch.utils.data.Dataset):
     def __getitem__(self, i):
         print('__getitem__\t', i)
         img = Image.open(os.path.join(self.data_root, self.fns[i])).convert('RGB')
-        img = F.resize(img, 256)
         img = self.transforms(img)
         return img
 
