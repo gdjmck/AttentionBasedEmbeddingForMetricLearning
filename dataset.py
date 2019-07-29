@@ -23,7 +23,7 @@ class MetricData(torch.utils.data.Dataset):
     
     def _convert_labels(self):
         labels, fns = [], []
-        for i in self.anno.shape[1]:
+        for i in range(self.anno.shape[1]):
             labels.append(self.anno[0, i][-2][0, 0])
             fns.append(self.anno[0, i][-1][0])
         self.labels = labels
