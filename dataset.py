@@ -74,5 +74,11 @@ if __name__ == '__main__':
                                     anno_file='/home/chk/cars_stanford/devkit/cars_train_annos.mat', \
                                     idx_file='/home/chk/cars_stanford/devkit/cars_train_annos_idx.pkl')
     dataset = torch.utils.data.DataLoader(data, batch_size=64, sampler=SourceSampler(data))
+
+    from model import MetricLearner
+    model = MetricLearner()
     for label, td in dataset:
         print('Batch shape:\t', td.shape, '\t', label)
+        pred = model(td)
+        print(pred.shape)
+        break
