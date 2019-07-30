@@ -67,3 +67,4 @@ if __name__ == '__main__':
                         os.path.join(args.ckpt, '%d_ckpt.pth'%epoch))
             shutil.copy(os.path.join(args.ckpt, '%d_ckpt.pth'%epoch), os.path.join(args.ckpt, 'best_performance.pth'))
             print('Saved model.')
+            model.to(device)
