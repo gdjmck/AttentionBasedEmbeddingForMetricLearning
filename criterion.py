@@ -17,7 +17,7 @@ def L_divergence(feats):
 
 def loss_func(tensor):
         assert tensor.shape[0] % 2 == 0
-        batch_split = tensor.shape[0] / 2 # idx < batch_split are positive pairs, negative pairs otherwise
+        batch_split = int(tensor.shape[0] / 2) # idx < batch_split are positive pairs, negative pairs otherwise
         loss = 0
         for i in range(0, batch_split, 2):
                 loss += L_divergence(tensor[i, ...])
