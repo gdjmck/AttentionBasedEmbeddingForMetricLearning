@@ -62,7 +62,7 @@ if __name__ == '__main__':
             for i, batch in enumerate(dataset_test):
                 batch[0] = batch[0].to(device)
                 if i < 4:
-                    top_4[i] = {'fn': batch[1], 'query': model(batch[0].cpu().numpy()), 'top_4': []}
+                    top_4[i] = {'fn': batch[1], 'query': model(batch[0]).cpu().numpy(), 'top_4': []}
                 else:
                     embedding = model(batch[0]).cpu().numpy()
                     for j in range(4):
