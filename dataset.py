@@ -31,7 +31,7 @@ class MetricData(torch.utils.data.Dataset):
         self.fns = fns
 
     def __getitem__(self, i):
-        print('__getitem__\t', i%16, '\tlabel:', self.labels[i])
+        # print('__getitem__\t', i%16, '\tlabel:', self.labels[i])
         #label = self.labels[i]
         img = Image.open(os.path.join(self.data_root, self.fns[i])).convert('RGB')
         img = self.transforms(img)
