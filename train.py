@@ -10,7 +10,7 @@ from dataset import MetricData, SourceSampler
 def get_args():
     parser = argparse.ArgumentParser(description='Face Occlusion Regression')
     # train
-    parser.add_argument('--pretrain', type=str, default='', help='pretrain googLeNet model paht')
+    parser.add_argument('--pretrain', type=str, default='/root/.torch/models/googlenet-1378be20.pth', help='pretrain googLeNet model paht')
     parser.add_argument('--gpu_ids', type=str, default='0', help='gpu ids: e.g. 0  0,1,2, 0,2. use -1 for CPU')
     parser.add_argument('--epochs', type=int, default=200, help='number of epochs plans to train in total')
     parser.add_argument('--epoch_start', type=int, default=0, help='start epoch to count from')
