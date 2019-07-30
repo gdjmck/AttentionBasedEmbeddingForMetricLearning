@@ -90,7 +90,7 @@ if __name__ == '__main__':
             optimizer.step()
 
             loss += l
-            print('\tloss: %.4f'%(loss / (i+1)))
+            # print('\tloss: %.4f'%(loss / (i+1)))
         loss /= (i+1)
         print('Batch %d\tloss:%.4f'%(epoch, loss))
         if loss < best_performace:
