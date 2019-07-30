@@ -34,11 +34,18 @@ if __name__ == '__main__':
     data = MetricData(data_root=args.img_folder, anno_file=args.anno, idx_file=args.idx_file)
     dataset = torch.utils.data.DataLoader(data, batch_size=args.batch, sampler=SourceSampler(data, args.batch//2), drop_last=True, num_workers=4)
     model = MetricLearner(pretrain=args.pretrain)
+    if args.resume:
+        state_dict = torch.load(os.path.join(args.ckpt, 'best_performance.pth'))
+        best_performace = state_dict['loss']
+        start_epoch = state_dict['epoch']
+        model.load_state_dict(state_dict['state_dict'])
+    else:
+        start_epoch = 0
+        best_performace = np.Inf
     model = model.to(device)
     optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
 
-    best_performace = np.Inf
-    for epoch in range(0, args.epochs):
+    for epoch in range(start_epoch, args.epochs):
         model.train()
 
         loss = 0
@@ -56,7 +63,7 @@ if __name__ == '__main__':
         loss /= (i+1)
         print('Batch %d\tloss:%.4f'%(epoch, loss))
         if loss < best_performace:
-            torch.save({'state_dict': model.cpu().state_dict(), 'epoch': epoch, 'loss': loss}, \
+            torch.save({'state_dict': model.cpu().state_dict(), 'epoch': epoch+1, 'loss': loss}, \
                         os.path.join(args.ckpt, '%d_ckpt.pth'%epoch))
             shutil.copy(os.path.join(args.ckpt, '%d_ckpt.pth'%epoch), os.path.join(args.ckpt, 'best_performance.pth'))
             print('Saved model.')
