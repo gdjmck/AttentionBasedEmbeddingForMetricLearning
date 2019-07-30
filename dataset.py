@@ -32,10 +32,10 @@ class MetricData(torch.utils.data.Dataset):
 
     def __getitem__(self, i):
         print('__getitem__\t', i%16, '\tlabel:', self.labels[i])
-        label = self.labels[i]
+        #label = self.labels[i]
         img = Image.open(os.path.join(self.data_root, self.fns[i])).convert('RGB')
         img = self.transforms(img)
-        return label, img
+        return img
 
 class SourceSampler(torch.utils.data.Sampler):
     def __init__(self, data_source, batch_size=32):
@@ -55,17 +55,19 @@ class SourceSampler(torch.utils.data.Sampler):
             if i % self.batch_size < self.batch_size / 2: # positive pair
                 idx_list = self.idx_dict[label]
                 s = np.random.choice(idx_list, size=2, replace=False)
-                print('\t\t', s)
+                # print('\t\t', s)
                 ret_idx.extend([idx, s[1]] if s[0] == idx else s)
+                '''
                 print('\tpositive pair', ret_idx[-1], '\t', \
                     self.data_source.labels[ret_idx[-2]], '\t', self.data_source.labels[ret_idx[-1]])
+                '''
             else: # negative pair
                 # 从非idx中抽一个label
                 neg_labels = np.random.choice(list(self.idx_dict.keys()), 2, replace=False)
                 neg_label = neg_labels[0] if neg_labels[0] != label else neg_labels[1]
                 s = np.random.choice(self.idx_dict[neg_label], 1)
                 ret_idx.extend([idx, s[0]])
-                print('\tnegative pair', ret_idx[-1], '\t', self.data_source.labels[ret_idx[-1]], '\t', self.data_source.labels[ret_idx[-2]])
+                # print('\tnegative pair', ret_idx[-1], '\t', self.data_source.labels[ret_idx[-1]], '\t', self.data_source.labels[ret_idx[-2]])
         return iter(ret_idx)
 
 

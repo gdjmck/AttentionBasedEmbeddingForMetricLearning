@@ -1,6 +1,8 @@
 import argparse
 import torch
+import criterion
 from model import MetricLearner
+from dataset import MetricData, SourceSampler
 
 def get_args():
     parser = argparse.ArgumentParser(description='Face Occlusion Regression')
@@ -16,6 +18,7 @@ def get_args():
     parser.add_argument('--anno', type=str, required=True, help='location of annotation file')
     parser.add_argument('--anno_test', type=str, required=True, help='location of test data annotation file')
     parser.add_argument('--img_folder', type=str, required=True, help='folder of image files in annotation file')
+    parser.add_argument('--idx_file', type=str, required=True, help='idx file for every label class')
     # model hyperparameter
     parser.add_argument('--in_size', type=int, default=128, help='input tensor shape to put into model')
     return parser.parse_args()
@@ -23,9 +26,21 @@ def get_args():
 if __name__ == '__main__':
     args = get_args()
 
-    data
+    device = torch.device('cuda:{}'.format(args.gpu_ids[0])) if args.gpu_ids else torch.device('cpu')
+    data = MetricData(data_root=args.img_folder, anno_file=args.anno, idx_file=args.idx_file)
+    dataset = torch.utils.data.DataLoader(data, batch_size=64, sampler=SourceSampler(data), drop_last=True)
     optimizer = torch.optim.SGD(momentum=0.9)
     model = MetricLearner()
+    model.to(device)
 
     for epoch in range(0, args.epochs):
         model.train()
+
+        loss = 0
+        for i, batch in enumerate(dataset):
+            batch = batch.to(device)
+            embeddings = model(batch)
+            l = criterion.loss_func(embeddings)
+            loss += l
+            print('\tloss: %.4f'%(loss / (i+1)))
+        print('Batch %d\tloss:%.4f'%(epoch, loss/(1+i)))
