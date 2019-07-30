@@ -86,7 +86,7 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         sp = self.feat_spatial(x)
         att_input = self.att_prep(sp)
         atts = [att_func(att_input) for att_func in self.att]
-        return [self.feat_global(att*sp) for att in atts]
+        return torch.cat([self.feat_global(att*sp).unsqueeze(1) for att in atts], 1)
         '''
         embeddings = torch.cat([self.feat_global(att*sp) for att in atts], 1)
         assert embeddings.shape[1] == 512

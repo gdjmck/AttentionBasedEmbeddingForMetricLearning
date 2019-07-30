@@ -80,5 +80,5 @@ if __name__ == '__main__':
     for label, td in dataset:
         print('Batch shape:\t', td.shape, '\t', label)
         pred = model(td)
-        print(len(pred), pred[0].shape)
+        print(pred.shape)
         break
