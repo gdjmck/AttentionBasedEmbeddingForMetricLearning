@@ -31,7 +31,7 @@ class MetricData(torch.utils.data.Dataset):
         self.fns = fns
 
     def __getitem__(self, i):
-        print('__getitem__\t', i)
+        print('__getitem__\t', i%16, '\tlabel:', self.labels[i])
         img = Image.open(os.path.join(self.data_root, self.fns[i])).convert('RGB')
         img = self.transforms(img)
         return img
@@ -70,4 +70,4 @@ if __name__ == '__main__':
                                     idx_file='/home/chk/cars_stanford/devkit/cars_train_annos_idx.pkl')
     dataset = torch.utils.data.DataLoader(data, batch_size=32, sampler=SourceSampler(data))
     for td in dataset:
-        print(td.shape)
+        print('Batch shape:\t', td.shape)
