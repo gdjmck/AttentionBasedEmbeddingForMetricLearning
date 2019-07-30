@@ -58,19 +58,20 @@ if __name__ == '__main__':
     if args.test and args.resume:
         model.eval()
         top_4 = {}
-        for i, batch in enumerate(dataset_test):
-            batch[0] = batch[0].to(device)
-            if i < 4:
-                top_4[i] = {'fn': batch[1], 'query': model(batch[0]), 'top_4': []}
-            else:
-                embedding = model(batch[0])
-                for j in range(4):
-                    dist = np.sum(np.fabs(top_4[j]['query'] - embedding))
-                    if len(top_4[j]['top_4']) < 4 or len(top_4[j]['top_4']) >= 4 and dist < top_4[j]['top_4'][-1]['distance']:
-                        top_4[j]['top_4'].append({'fn': batch[1], 'distance': dist})
-                        if len(top_4[j]['top_4']) > 4:
-                            sorted(top_4[j]['top_4'], key=lambda x: x['distance'], reverse=True)
-                            top_4[j]['top_4'] = top_4[j]['top_4'][:4]
+        with torch.no_grad():
+            for i, batch in enumerate(dataset_test):
+                batch[0] = batch[0].to(device)
+                if i < 4:
+                    top_4[i] = {'fn': batch[1], 'query': model(batch[0]), 'top_4': []}
+                else:
+                    embedding = model(batch[0])
+                    for j in range(4):
+                        dist = np.sum(np.fabs(top_4[j]['query'] - embedding))
+                        if len(top_4[j]['top_4']) < 4 or len(top_4[j]['top_4']) >= 4 and dist < top_4[j]['top_4'][-1]['distance']:
+                            top_4[j]['top_4'].append({'fn': batch[1], 'distance': dist})
+                            if len(top_4[j]['top_4']) > 4:
+                                sorted(top_4[j]['top_4'], key=lambda x: x['distance'], reverse=True)
+                                top_4[j]['top_4'] = top_4[j]['top_4'][:4]
         print(top_4)
         sys.exit()
 
