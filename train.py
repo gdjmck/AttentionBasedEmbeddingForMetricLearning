@@ -10,6 +10,7 @@ from dataset import MetricData, SourceSampler
 def get_args():
     parser = argparse.ArgumentParser(description='Face Occlusion Regression')
     # train
+    parser.add_argument('--pretrain', type=str, default='', help='pretrain googLeNet model paht')
     parser.add_argument('--gpu_ids', type=str, default='0', help='gpu ids: e.g. 0  0,1,2, 0,2. use -1 for CPU')
     parser.add_argument('--epochs', type=int, default=200, help='number of epochs plans to train in total')
     parser.add_argument('--epoch_start', type=int, default=0, help='start epoch to count from')
@@ -32,7 +33,7 @@ if __name__ == '__main__':
     device = torch.device('cuda:{}'.format(args.gpu_ids[0])) if args.gpu_ids else torch.device('cpu')
     data = MetricData(data_root=args.img_folder, anno_file=args.anno, idx_file=args.idx_file)
     dataset = torch.utils.data.DataLoader(data, batch_size=args.batch, sampler=SourceSampler(data, args.batch//2), drop_last=True, num_workers=4)
-    model = MetricLearner()
+    model = MetricLearner(pretrain=args.pretrain)
     model = model.to(device)
     optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
 

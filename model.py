@@ -2,10 +2,20 @@ import torch
 import torch.nn as nn
 import torchvision.models as models
 import GoogLeNet
+import os
+from torch.hub import load_state_dict_from_url
 
 class MetricLearner(GoogLeNet.GoogLeNet):
-    def __init__(self, att_heads=8):
+    def __init__(self, att_heads=8, pretrain=None):
         super(MetricLearner, self).__init__()
+        if pretrain:
+            if os.path.exists(pretrain):
+                self.load_state_dict(torch.load(pretrain))
+                print('Loaded pretrained GoogLeNet.')
+            else:
+                print('Downloading pretrained GoogLeNet.')
+                state_dict = load_state_dict_from_url('https://download.pytorch.org/models/googlenet-1378be20.pth')
+                self.load_state_dict(state_dict)
         assert 512 % att_heads == 0
         self.att_heads = att_heads
         self.out_dim = int(512 / self.att_heads)
