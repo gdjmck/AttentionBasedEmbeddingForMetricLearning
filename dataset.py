@@ -57,7 +57,7 @@ class SourceSampler(torch.utils.data.Sampler):
                 print('\t\t', s)
                 ret_idx.extend([idx, s[1]] if s[0] == idx else s)
                 print('\tpositive pair', ret_idx[-1], '\t', \
-                    self.data_source.labels[ret_idx[-2], '\t', self.data_source.labels[ret_idx[-1]])
+                    self.data_source.labels[ret_idx[-2]], '\t', self.data_source.labels[ret_idx[-1]])
             else: # negative pair
                 # 从非idx中抽一个label
                 neg_labels = np.random.choice(list(self.idx_dict.keys()), 2, replace=False)
