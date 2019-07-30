@@ -29,9 +29,9 @@ if __name__ == '__main__':
     device = torch.device('cuda:{}'.format(args.gpu_ids[0])) if args.gpu_ids else torch.device('cpu')
     data = MetricData(data_root=args.img_folder, anno_file=args.anno, idx_file=args.idx_file)
     dataset = torch.utils.data.DataLoader(data, batch_size=64, sampler=SourceSampler(data), drop_last=True)
-    optimizer = torch.optim.SGD(momentum=0.9)
     model = MetricLearner()
     model.to(device)
+    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
 
     for epoch in range(0, args.epochs):
         model.train()
@@ -40,7 +40,12 @@ if __name__ == '__main__':
         for i, batch in enumerate(dataset):
             batch = batch.to(device)
             embeddings = model(batch)
+
+            optimizer.zero_grad()
             l = criterion.loss_func(embeddings)
+            l.backward()
+            optimizer.step()
+
             loss += l
             print('\tloss: %.4f'%(loss / (i+1)))
         print('Batch %d\tloss:%.4f'%(epoch, loss/(1+i)))
