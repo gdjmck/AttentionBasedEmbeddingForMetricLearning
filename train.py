@@ -59,6 +59,7 @@ if __name__ == '__main__':
         model.eval()
         top_4 = {}
         for i, batch in enumerate(dataset_test):
+            batch[0] = batch[0].to(device)
             if i < 4:
                 top_4[i] = {'fn': batch[1], 'query': model(batch[0]), 'top_4': []}
             else:
