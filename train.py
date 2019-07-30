@@ -62,9 +62,9 @@ if __name__ == '__main__':
             for i, batch in enumerate(dataset_test):
                 batch[0] = batch[0].to(device)
                 if i < 4:
-                    top_4[i] = {'fn': batch[1], 'query': model(batch[0]), 'top_4': []}
+                    top_4[i] = {'fn': batch[1], 'query': model(batch[0].cpu().numpy()), 'top_4': []}
                 else:
-                    embedding = model(batch[0])
+                    embedding = model(batch[0]).cpu().numpy()
                     for j in range(4):
                         dist = np.sum(np.fabs(top_4[j]['query'] - embedding))
                         if len(top_4[j]['top_4']) < 4 or len(top_4[j]['top_4']) >= 4 and dist < top_4[j]['top_4'][-1]['distance']:
