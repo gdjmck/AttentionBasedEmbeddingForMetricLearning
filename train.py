@@ -1,5 +1,8 @@
 import argparse
 import torch
+import os
+import shutil
+import numpy as np
 import criterion
 from model import MetricLearner
 from dataset import MetricData, SourceSampler
@@ -28,11 +31,12 @@ if __name__ == '__main__':
 
     device = torch.device('cuda:{}'.format(args.gpu_ids[0])) if args.gpu_ids else torch.device('cpu')
     data = MetricData(data_root=args.img_folder, anno_file=args.anno, idx_file=args.idx_file)
-    dataset = torch.utils.data.DataLoader(data, batch_size=args.batch, sampler=SourceSampler(data, args.batch//2), drop_last=True)
+    dataset = torch.utils.data.DataLoader(data, batch_size=args.batch, sampler=SourceSampler(data, args.batch//2), drop_last=True, num_workers=4)
     model = MetricLearner()
-    model.to(device)
+    model = model.to(device)
     optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
 
+    best_performace = np.Inf
     for epoch in range(0, args.epochs):
         model.train()
 
@@ -48,4 +52,10 @@ if __name__ == '__main__':
 
             loss += l
             print('\tloss: %.4f'%(loss / (i+1)))
-        print('Batch %d\tloss:%.4f'%(epoch, loss/(1+i)))
+        loss /= (i+1)
+        print('Batch %d\tloss:%.4f'%(epoch, loss))
+        if loss < best_performace:
+            torch.save({'state_dict': model.cpu().state_dict(), 'epoch': epoch, 'loss': loss}, \ 
+                        os.path.join(args.ckpt, '%d_ckpt.pth'%epoch))
+            shutil.copy(os.path.join(args.ckpt, '%d_ckpt.pth'%epoch), os.path.join(args.ckpt, 'best_performance.pth'))
+            print('Saved model.')
