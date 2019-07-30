@@ -7,7 +7,8 @@ from PIL import Image
 import torchvision.transforms as transforms
 
 class MetricData(torch.utils.data.Dataset):
-    def __init__(self, data_root, anno_file, idx_file):
+    def __init__(self, data_root, anno_file, idx_file, return_fn=False):
+        self.return_fn = return_fn
         if idx_file.endswith('pkl'):
             with open(idx_file, 'rb') as f:
                 self.idx = pickle.load(f)
@@ -35,7 +36,7 @@ class MetricData(torch.utils.data.Dataset):
         #label = self.labels[i]
         img = Image.open(os.path.join(self.data_root, self.fns[i])).convert('RGB')
         img = self.transforms(img)
-        return img
+        return img if not self.return_fn else (img, self.fns[i])
 
 class SourceSampler(torch.utils.data.Sampler):
     def __init__(self, data_source, batch_size=32):

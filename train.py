@@ -1,8 +1,10 @@
 import argparse
 import torch
 import os
+import sys
 import shutil
 import numpy as np
+import visdom
 import criterion
 from model import MetricLearner
 from dataset import MetricData, SourceSampler
@@ -18,11 +20,15 @@ def get_args():
     parser.add_argument('--lr', type=float, default=1e-4, help='learning rate')
     parser.add_argument('--ckpt', type=str, default='./ckpt', help='checkpoint folder')
     parser.add_argument('--resume', action='store_true', help='load previous best model and resume training')
+    # test
+    parser.add_argument('--test', action='store_true', help='switch on test mode')
     # annotation
     parser.add_argument('--anno', type=str, required=True, help='location of annotation file')
     parser.add_argument('--anno_test', type=str, required=True, help='location of test data annotation file')
     parser.add_argument('--img_folder', type=str, required=True, help='folder of image files in annotation file')
+    parser.add_argument('--img_folder_test', type=str, default='', help='folder of test image files in annotaion file')
     parser.add_argument('--idx_file', type=str, required=True, help='idx file for every label class')
+    parser.add_argument('--idx_file_test', type=str, default='idx_file.pkl', help='idx file for test data, should be .pkl format')
     # model hyperparameter
     parser.add_argument('--in_size', type=int, default=128, help='input tensor shape to put into model')
     return parser.parse_args()
@@ -45,6 +51,27 @@ if __name__ == '__main__':
         best_performace = np.Inf
     model = model.to(device)
     optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
+
+    # TEST DATASET
+    dataset_test = torch.utils.data.DataLoader(MetricData(args.img_folder_test, args.anno_test, return_fn=True), \
+                        batch_size=1, shuffle=True, drop_last=False, num_workers=2)
+    if args.test and args.resume:
+        model.eval()
+        top_4 = {}
+        for i, batch in enumerate(dataset_test):
+            if i < 4:
+                top_4[i] = {'fn': batch[1], 'query': model(batch[0]), 'top_4': []}
+            else:
+                embedding = model(batch[0])
+                for j in range(4):
+                    dist = np.sum(np.fabs(top_4[j]['query'] - embedding))
+                    if len(top_4[j]['top_4']) < 4 or len(top_4[j]['top_4']) >= 4 and dist < top_4[j]['top_4'][-1]['distance']:
+                        top_4[j]['top_4'].append({'fn': batch[1], 'distance': dist})
+                        if len(top_4[j]['top_4']) > 4:
+                            sorted(top_4[j]['top_4'], key=lambda x: x['distance'], reverse=True)
+                            top_4[j]['top_4'] = top_4[j]['top_4'][:4]
+        print(top_4)
+        sys.exit()
 
     for epoch in range(start_epoch, args.epochs):
         model.train()
