@@ -56,6 +56,7 @@ if __name__ == '__main__':
     dataset_test = torch.utils.data.DataLoader(MetricData(args.img_folder_test, args.anno_test, args.idx_file_test, return_fn=True), \
                         batch_size=1, shuffle=True, drop_last=False, num_workers=2)
     if args.test and args.resume:
+        vis = visdom.Visdom()
         model.eval()
         top_4 = {}
         with torch.no_grad():
@@ -93,6 +94,7 @@ if __name__ == '__main__':
         loss /= (i+1)
         print('Batch %d\tloss:%.4f'%(epoch, loss))
         if loss < best_performace:
+            best_performace = loss
             torch.save({'state_dict': model.cpu().state_dict(), 'epoch': epoch+1, 'loss': loss}, \
                         os.path.join(args.ckpt, '%d_ckpt.pth'%epoch))
             shutil.copy(os.path.join(args.ckpt, '%d_ckpt.pth'%epoch), os.path.join(args.ckpt, 'best_performance.pth'))
