@@ -39,6 +39,7 @@ if __name__ == '__main__':
         best_performace = state_dict['loss']
         start_epoch = state_dict['epoch']
         model.load_state_dict(state_dict['state_dict'])
+        print('Resume training.')
     else:
         start_epoch = 0
         best_performace = np.Inf
