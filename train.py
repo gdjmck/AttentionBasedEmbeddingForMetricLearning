@@ -65,15 +65,19 @@ if __name__ == '__main__':
                 batch[0] = batch[0].to(device)
                 if i < 4:
                     top_4[i] = {'fn': batch[1], 'query': model(batch[0]).cpu().numpy(), 'top_4': []}
+                    vis.image(cv2.imread(os.path.join(args.img_folder_test, top_4[i]['fn']))[..., ::-1], \
+                        opts=dict(win=i*10, title='Query_%d'%i))    
+                    print('Added query.')                
                 else:
                     embedding = model(batch[0]).cpu().numpy()
                     for j in range(4):
                         dist = np.sum(np.fabs(top_4[j]['query'] - embedding))
-                        if len(top_4[j]['top_4']) < 4 or len(top_4[j]['top_4']) >= 4 and dist < top_4[j]['top_4'][-1]['distance']:
+                        if len(top_4[j]['top_4']) < 4 or (len(top_4[j]['top_4']) >= 4 and dist < top_4[j]['top_4'][-1]['distance']):
                             top_4[j]['top_4'].append({'fn': batch[1], 'distance': dist})
                             if len(top_4[j]['top_4']) > 4:
                                 last_fn = top_4[j]['top_4'][-1]['fn']
                                 sorted(top_4[j]['top_4'], key=lambda x: x['distance'], reverse=True)
+                                print('Sorted ', top_4[j]['top_4'])
                                 top_4[j]['top_4'] = top_4[j]['top_4'][:4]
                                 update = False
                                 for d in top_4[j]['top_4']:
@@ -85,8 +89,7 @@ if __name__ == '__main__':
                                     for d in top_4[j]['top_4']:
                                         imgs.append(cv2.imread(os.path.join(args.img_folder_test, d['fn']))[..., ::-1])
                                     vis.images(imgs, opts=dict(win=j, title='IMG_%d'%j))
-                                    vis.image(cv2.imread(os.path.join(args.img_folder_test, top_4[j]['fn']))[..., ::-1], \
-                                        opts=dict(win=j*10, title='Query_%d'%j))
+
         print(top_4)
         sys.exit()
 
