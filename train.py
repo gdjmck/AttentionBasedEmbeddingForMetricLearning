@@ -76,7 +76,7 @@ if __name__ == '__main__':
                             top_4[j]['top_4'].append({'fn': batch[1][0], 'distance': dist})
                             if len(top_4[j]['top_4']) > 4:
                                 last_fn = top_4[j]['top_4'][-1]['fn']
-                                top_4[j]['top_4'] = sorted(top_4[j]['top_4'], key=lambda x: x['distance'], reverse=True)
+                                top_4[j]['top_4'] = sorted(top_4[j]['top_4'], key=lambda x: x['distance'])
                                 print('Sorted ', top_4[j]['top_4'])
                                 top_4[j]['top_4'] = top_4[j]['top_4'][:4]
                                 update = False
@@ -87,8 +87,8 @@ if __name__ == '__main__':
                                         break
                                 if update:
                                     imgs = []
-                                    for d in top_4[j]['top_4']:
-                                        imgs.append(np.transpose(cv2.imread(os.path.join(args.img_folder_test, d['fn']))[..., ::-1], (2, 0, 1)))
+                                    
+                                    np.concatenate([np.transpose(cv2.imread(os.path.join(args.img_folder_test, d['fn']))[..., ::-1], (2, 0, 1)[np.newaxis])] for d in top_4[j]['top_4'])
                                     vis.images(imgs, opts=dict(win=j, title='IMG_%d'%j))
 
         print(top_4)
