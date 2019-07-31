@@ -76,13 +76,14 @@ if __name__ == '__main__':
                             top_4[j]['top_4'].append({'fn': batch[1][0], 'distance': dist})
                             if len(top_4[j]['top_4']) > 4:
                                 last_fn = top_4[j]['top_4'][-1]['fn']
-                                sorted(top_4[j]['top_4'], key=lambda x: x['distance'], reverse=True)
+                                top_4[j]['top_4'] = sorted(top_4[j]['top_4'], key=lambda x: x['distance'], reverse=True)
                                 print('Sorted ', top_4[j]['top_4'])
                                 top_4[j]['top_4'] = top_4[j]['top_4'][:4]
                                 update = False
                                 for d in top_4[j]['top_4']:
                                     if d['fn'] == last_fn:
                                         update = True
+                                        print('\nUpdated\n')
                                         break
                                 if update:
                                     imgs = []
