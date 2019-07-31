@@ -42,7 +42,10 @@ if __name__ == '__main__':
     dataset = torch.utils.data.DataLoader(data, batch_size=args.batch, sampler=SourceSampler(data, args.batch//2), drop_last=True, num_workers=4)
     model = MetricLearner(pretrain=args.pretrain)
     if args.resume:
-        state_dict = torch.load(os.path.join(args.ckpt, 'best_performance.pth'))
+        if args.ckpt.endswith('.pth'):
+            state_dict = torch.load(args.ckpt)
+        else:
+            state_dict = torch.load(os.path.join(args.ckpt, 'best_performance.pth'))
         best_performace = state_dict['loss']
         start_epoch = state_dict['epoch']
         model.load_state_dict(state_dict['state_dict'])
