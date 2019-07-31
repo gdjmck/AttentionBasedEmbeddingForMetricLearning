@@ -65,7 +65,7 @@ if __name__ == '__main__':
                 batch[0] = batch[0].to(device)
                 if i < 4:
                     top_4[i] = {'fn': batch[1][0], 'query': model(batch[0]).cpu().numpy(), 'top_4': []}
-                    vis.image(cv2.imread(os.path.join(args.img_folder_test, top_4[i]['fn']))[..., ::-1], \
+                    vis.image(np.transpose(cv2.imread(os.path.join(args.img_folder_test, top_4[i]['fn']))[..., ::-1], (2, 0, 1)), \
                         opts=dict(win=i*10, title='Query_%d'%i))    
                     print('Added query.')                
                 else:
@@ -87,7 +87,7 @@ if __name__ == '__main__':
                                 if update:
                                     imgs = []
                                     for d in top_4[j]['top_4']:
-                                        imgs.append(cv2.imread(os.path.join(args.img_folder_test, d['fn']))[..., ::-1])
+                                        imgs.append(np.transpose(cv2.imread(os.path.join(args.img_folder_test, d['fn']))[..., ::-1], (2, 0, 1)))
                                     vis.images(imgs, opts=dict(win=j, title='IMG_%d'%j))
 
         print(top_4)
