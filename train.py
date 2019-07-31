@@ -66,7 +66,7 @@ if __name__ == '__main__':
                 if i < 4:
                     top_4[i] = {'fn': batch[1][0], 'query': model(batch[0]).cpu().numpy(), 'top_4': []}
                     vis.image(np.transpose(cv2.imread(os.path.join(args.img_folder_test, top_4[i]['fn']))[..., ::-1], (2, 0, 1)), \
-                        opts=dict(win=i*10, title='Query_%d'%i))    
+                        win=i*10, opts=dict(title='Query_%d'%i))    
                     print('Added query.')                
                 else:
                     embedding = model(batch[0]).cpu().numpy()
@@ -87,7 +87,7 @@ if __name__ == '__main__':
                                         break
                                 if update:
                                     imgs = np.concatenate([np.transpose(cv2.imread(os.path.join(args.img_folder_test, d['fn']))[..., ::-1], (2, 0, 1)[np.newaxis]) for d in top_4[j]['top_4']])
-                                    vis.images(imgs, opts=dict(win=j, title='IMG_%d'%j))
+                                    vis.images(imgs, win=j, opts=dict(title='IMG_%d'%j))
 
         print(top_4)
         sys.exit()
