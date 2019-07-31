@@ -54,7 +54,7 @@ if __name__ == '__main__':
     optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
 
     # TEST DATASET
-        if args.test and args.resume:
+    if args.test and args.resume:
         dataset_test = torch.utils.data.DataLoader(MetricData(args.img_folder_test, args.anno_test, args.idx_file_test, return_fn=True), \
                             batch_size=1, shuffle=True, drop_last=False, num_workers=2)
         vis = visdom.Visdom()
