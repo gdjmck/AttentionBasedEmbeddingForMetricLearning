@@ -6,6 +6,7 @@ import shutil
 import numpy as np
 import visdom
 import criterion
+import cv2
 from model import MetricLearner
 from dataset import MetricData, SourceSampler
 
@@ -53,9 +54,9 @@ if __name__ == '__main__':
     optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
 
     # TEST DATASET
-    dataset_test = torch.utils.data.DataLoader(MetricData(args.img_folder_test, args.anno_test, args.idx_file_test, return_fn=True), \
-                        batch_size=1, shuffle=True, drop_last=False, num_workers=2)
-    if args.test and args.resume:
+        if args.test and args.resume:
+        dataset_test = torch.utils.data.DataLoader(MetricData(args.img_folder_test, args.anno_test, args.idx_file_test, return_fn=True), \
+                            batch_size=1, shuffle=True, drop_last=False, num_workers=2)
         vis = visdom.Visdom()
         model.eval()
         top_4 = {}
@@ -71,8 +72,21 @@ if __name__ == '__main__':
                         if len(top_4[j]['top_4']) < 4 or len(top_4[j]['top_4']) >= 4 and dist < top_4[j]['top_4'][-1]['distance']:
                             top_4[j]['top_4'].append({'fn': batch[1], 'distance': dist})
                             if len(top_4[j]['top_4']) > 4:
+                                last_fn = top_4[j]['top_4'][-1]['fn']
                                 sorted(top_4[j]['top_4'], key=lambda x: x['distance'], reverse=True)
                                 top_4[j]['top_4'] = top_4[j]['top_4'][:4]
+                                update = False
+                                for d in top_4[j]['top_4']:
+                                    if d['fn'] == last_fn:
+                                        update = True
+                                        break
+                                if update:
+                                    imgs = []
+                                    for d in top_4[j]['top_4']:
+                                        imgs.append(cv2.imread(os.path.join(args.img_folder_test, d['fn']))[..., ::-1])
+                                    vis.images(imgs, opts=dict(win=j, title='IMG_%d'%j))
+                                    vis.image(cv2.imread(os.path.join(args.img_folder_test, top_4[j]['fn']))[..., ::-1], \
+                                        opts=dict(win=j*10, title='Query_%d'%j))
         print(top_4)
         sys.exit()
 
