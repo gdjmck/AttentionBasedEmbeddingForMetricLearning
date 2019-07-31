@@ -66,7 +66,7 @@ if __name__ == '__main__':
                 if i < 4:
                     top_4[i] = {'fn': batch[1][0], 'query': model(batch[0]).cpu().numpy(), 'top_4': []}
                     vis.image(np.transpose(cv2.imread(os.path.join(args.img_folder_test, top_4[i]['fn']))[..., ::-1], (2, 0, 1)), \
-                        win=i*10, opts=dict(title='Query_%d'%i))    
+                        win=i+100, opts=dict(title='Query_%d'%i))    
                     print('Added query.')                
                 else:
                     embedding = model(batch[0]).cpu().numpy()
