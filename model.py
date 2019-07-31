@@ -88,7 +88,7 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         # N x 528 x 14 x 14
         e4 = self.inception4e(d4)
         # N x 832 x 14 x 14      
-        return torch.cat([a4, b4, c4, d4, e4], 1)
+        return e4
 
     def forward(self, x):
         # N x 3 x 224 x 224

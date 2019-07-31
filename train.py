@@ -48,7 +48,7 @@ if __name__ == '__main__':
             state_dict = torch.load(os.path.join(args.ckpt, 'best_performance.pth'))
         best_performace = state_dict['loss']
         start_epoch = state_dict['epoch']
-        model.load_state_dict(state_dict['state_dict'])
+        model.load_state_dict(state_dict['state_dict'], strict=False)
         print('Resume training.')
     else:
         start_epoch = 0
