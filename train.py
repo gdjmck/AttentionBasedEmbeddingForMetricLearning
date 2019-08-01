@@ -72,6 +72,8 @@ if __name__ == '__main__':
                     imgs = MetricData.tensor2img(batch[0])
                     print('number of images in batch:', len(imgs), imgs[0].shape, imgs[0].min(), imgs[0].max())
                     print('number of attentions in batch:', len(atts), atts[0].shape)
+                    vis.images((np.concatenate([cv2.resizenp.repeat(atts[i].cpu().numpy().mean(axis=1)[...,np.newaxis], 3, axis=-1), (224, 224)) for i in range(3)]), \
+                        win=i+1000, opts=dict(title='Att_%d'%i))
                     top_4[i] = {'fn': batch[1][0], 'query': query.cpu().numpy(), 'top_8': []}
                     vis.image(np.transpose(cv2.imread(os.path.join(args.img_folder_test, top_4[i]['fn']))[..., ::-1], (2, 0, 1)), \
                         win=i+100, opts=dict(title='Query_%d'%i))    
