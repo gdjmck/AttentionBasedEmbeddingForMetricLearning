@@ -73,10 +73,15 @@ if __name__ == '__main__':
                     print('number of images in batch:', len(imgs), imgs[0].shape, imgs[0].min(), imgs[0].max())
                     tmp_att = atts[0].cpu().numpy().mean(axis=1)
                     print('number of attentions in batch:', len(atts), atts[0].shape, atts[0].min(), atts[0].max(), tmp_att.shape, tmp_att.min(), tmp_att.max())
+                    for j in range(4):
+                        vis.heatmap(cv2.resize(atts[j].cpu().numpy()[0, ...].mean(axis=0), (224, 224)), \
+                            win=j+1000, opts=dict(title='Att_%d'%j))
+                    '''
                     att_imgs = np.concatenate([np.transpose((np.repeat(atts[i].cpu().numpy()[0, ...].mean(axis=0)[...,np.newaxis], 3, axis=-1)*255).astype(np.uint8), (2, 0, 1))[np.newaxis] for i in range(3)])
                     print(att_imgs.shape)
                     vis.images(att_imgs, \
                         win=i+1000, opts=dict(title='Att_%d'%i))
+                    '''
                     top_4[i] = {'fn': batch[1][0], 'query': query.cpu().numpy(), 'top_8': []}
                     vis.image(np.transpose(cv2.imread(os.path.join(args.img_folder_test, top_4[i]['fn']))[..., ::-1], (2, 0, 1)), \
                         win=i+100, opts=dict(title='Query_%d'%i))    
@@ -128,7 +133,7 @@ if __name__ == '__main__':
         print('Epoch %d\thomo:%.4f\theter:%.4f'%(epoch, loss_homo, loss_heter))
         if (loss_homo+loss_heter) < best_performace:
             best_performace = loss_homo + loss_heter
-            torch.save({'state_dict': model.cpu().state_dict(), 'epoch': epoch+1, 'loss': loss_heter+loss_heter}, \
+            torch.save({'state_dict': model.cpu().state_dict(), 'epoch': epoch+1, 'loss': best_performace}, \
                         os.path.join(args.ckpt, '%d_ckpt.pth'%epoch))
             shutil.copy(os.path.join(args.ckpt, '%d_ckpt.pth'%epoch), os.path.join(args.ckpt, 'best_performance.pth'))
             print('Saved model.')
