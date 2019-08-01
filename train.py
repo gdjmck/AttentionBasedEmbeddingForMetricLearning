@@ -72,7 +72,7 @@ if __name__ == '__main__':
                     imgs = MetricData.tensor2img(batch[0])
                     print('number of images in batch:', len(imgs), imgs[0].shape, imgs[0].min(), imgs[0].max())
                     print('number of attentions in batch:', len(atts), atts[0].shape)
-                    att_imgs = np.concatenate([np.transpose(cv2.resize(np.repeat(atts[i].cpu().numpy()[0, ...].mean(axis=0)[...,np.newaxis], 3, axis=-1), (224, 224))*255, (1, 2, 0))[np.newaxis] for i in range(3)])
+                    att_imgs = np.concatenate([np.transpose(cv2.resize(np.repeat(atts[i].cpu().numpy()[0, ...].mean(axis=0)[...,np.newaxis], 3, axis=-1), (224, 224))*255, (2, 0, 1))[np.newaxis] for i in range(3)])
                     print(att_imgs.shape)
                     vis.images(att_imgs, \
                         win=i+1000, opts=dict(title='Att_%d'%i))
