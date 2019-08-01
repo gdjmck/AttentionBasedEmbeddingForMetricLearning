@@ -21,6 +21,7 @@ def get_args():
     parser.add_argument('--lr', type=float, default=1e-4, help='learning rate')
     parser.add_argument('--ckpt', type=str, default='./ckpt', help='checkpoint folder')
     parser.add_argument('--resume', action='store_true', help='load previous best model and resume training')
+    parser.add_argument('--num_workers', default=2, type=int, help='')
     # test
     parser.add_argument('--test', action='store_true', help='switch on test mode')
     # annotation
@@ -39,7 +40,7 @@ if __name__ == '__main__':
 
     device = torch.device('cuda:{}'.format(args.gpu_ids[0])) if args.gpu_ids else torch.device('cpu')
     data = MetricData(data_root=args.img_folder, anno_file=args.anno, idx_file=args.idx_file)
-    dataset = torch.utils.data.DataLoader(data, batch_size=args.batch, sampler=SourceSampler(data, args.batch//2), drop_last=True, num_workers=4)
+    dataset = torch.utils.data.DataLoader(data, batch_size=args.batch, sampler=SourceSampler(data, args.batch//2), drop_last=True, num_workers=args.num_workers)
     model = MetricLearner(pretrain=args.pretrain)
     if args.resume:
         if args.ckpt.endswith('.pth'):
@@ -59,7 +60,7 @@ if __name__ == '__main__':
     # TEST DATASET
     if args.test and args.resume:
         dataset_test = torch.utils.data.DataLoader(MetricData(args.img_folder_test, args.anno_test, args.idx_file_test, return_fn=True), \
-                            batch_size=1, shuffle=True, drop_last=False, num_workers=2)
+                            batch_size=1, shuffle=True, drop_last=False, num_workers=max(1, int(args.num_workers/2)))
         vis = visdom.Visdom()
         model.eval()
         top_4 = {}
@@ -67,32 +68,33 @@ if __name__ == '__main__':
             for i, batch in enumerate(dataset_test):
                 batch[0] = batch[0].to(device)
                 if i < 4:
-                    top_4[i] = {'fn': batch[1][0], 'query': model(batch[0]).cpu().numpy(), 'top_4': []}
+                    top_4[i] = {'fn': batch[1][0], 'query': model(batch[0]).cpu().numpy(), 'top_8': []}
                     vis.image(np.transpose(cv2.imread(os.path.join(args.img_folder_test, top_4[i]['fn']))[..., ::-1], (2, 0, 1)), \
                         win=i+100, opts=dict(title='Query_%d'%i))    
                     print('Added query.')                
                 else:
                     embedding = model(batch[0]).cpu().numpy()
                     for j in range(4):
-                        dist = np.sum(np.fabs(top_4[j]['query'] - embedding))
-                        if len(top_4[j]['top_4']) < 4 or (len(top_4[j]['top_4']) >= 4 and dist < top_4[j]['top_4'][-1]['distance']):
-                            top_4[j]['top_4'].append({'fn': batch[1][0], 'distance': dist})
-                            if len(top_4[j]['top_4']) > 4:
-                                last_fn = top_4[j]['top_4'][-1]['fn']
-                                top_4[j]['top_4'] = sorted(top_4[j]['top_4'], key=lambda x: x['distance'])
-                                print('Sorted ', top_4[j]['top_4'])
-                                top_4[j]['top_4'] = top_4[j]['top_4'][:4]
+                        dist = np.sum((top_4[j]['query'] - embedding)**2)
+                        if len(top_4[j]['top_8']) < 8 or (len(top_4[j]['top_8']) >= 8 and dist < top_4[j]['top_8'][-1]['distance']):
+                            top_4[j]['top_8'].append({'fn': batch[1][0], 'distance': dist})
+                            if len(top_4[j]['top_8']) > 8:
+                                last_fn = top_4[j]['top_8'][-1]['fn']
+                                top_4[j]['top_8'] = sorted(top_4[j]['top_8'], key=lambda x: x['distance'])
+                                print('%d Sorted.'%j, top_4[j]['top_8'])
+                                top_4[j]['top_8'] = top_4[j]['top_8'][:8]
                                 update = False
-                                for d in top_4[j]['top_4']:
+                                for d in top_4[j]['top_8']:
                                     if d['fn'] == last_fn:
                                         update = True
                                         print('\nUpdated\n')
                                         break
                                 if update:
-                                    imgs = np.concatenate([np.transpose(cv2.resize(cv2.imread(os.path.join(args.img_folder_test, d['fn'])), (250, 250))[..., ::-1], (2, 0, 1))[np.newaxis] for d in top_4[j]['top_4']])
+                                    imgs = np.concatenate([np.transpose(cv2.resize(cv2.imread(os.path.join(args.img_folder_test, d['fn'])), (250, 250))[..., ::-1], (2, 0, 1))[np.newaxis] for d in top_4[j]['top_8']])
                                     vis.images(imgs, win=j, opts=dict(title='IMG_%d'%j))
 
-        print(top_4)
+        for item in top_4.values():
+            print(item['fn'], '\n', item['top_8'], '\n\n')
         sys.exit()
 
     for epoch in range(start_epoch, args.epochs):
