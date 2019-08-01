@@ -6,6 +6,8 @@ import numpy as np
 from PIL import Image
 import torchvision.transforms as transforms
 
+mean, std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
+
 class MetricData(torch.utils.data.Dataset):
     def __init__(self, data_root, anno_file, idx_file, return_fn=False):
         self.return_fn = return_fn
@@ -18,7 +20,7 @@ class MetricData(torch.utils.data.Dataset):
         self.data_root = data_root
         self.transforms = transforms.Compose([transforms.Resize(256), transforms.RandomCrop((224, 224)), \
                                                 transforms.RandomHorizontalFlip(), transforms.ToTensor(), \
-                                                transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])])
+                                                transforms.Normalize(mean=mean,std=std)])
 
     def __len__(self):
         return self.anno.shape[1]
@@ -30,6 +32,22 @@ class MetricData(torch.utils.data.Dataset):
             fns.append(self.anno[0, i][-1][0])
         self.labels = labels
         self.fns = fns
+
+    @classmethod
+    def tensor2img(cls, tensor):
+        if type(tensor) != np.ndarray:
+            tensor = tensor.cpu().numpy()
+
+        if len(tensor.shape) == 4:
+            imgs = []
+            for i in range(tensor.shape[0]):
+                imgs.extend(cls.tensor2img(tensor[i, ...]))
+            return imgs
+        assert tensor.shape[0] == 3
+        img = np.transpose(tensor, (1, 2, 0))
+        img = img * np.array(std) + np.array(mean)
+        return [img*255]
+
 
     def __getitem__(self, i):
         # print('__getitem__\t', i%16, '\tlabel:', self.labels[i])

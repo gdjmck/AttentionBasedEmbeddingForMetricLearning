@@ -90,12 +90,13 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         # N x 832 x 14 x 14      
         return e4
 
-    def forward(self, x):
+    def forward(self, x, ret_att=False):
         # N x 3 x 224 x 224
         sp = self.feat_spatial(x)
         att_input = self.att_prep(sp)
         atts = [torch.sigmoid(att_func(att_input)) for att_func in self.att]
-        return torch.cat([self.feat_global(att*sp).unsqueeze(1) for att in atts], 1)
+        embedding = torch.cat([self.feat_global(att*sp).unsqueeze(1) for att in atts], 1)
+        return (embedding, atts) if ret_att else embedding
         '''
         embeddings = torch.cat([self.feat_global(att*sp) for att in atts], 1)
         assert embeddings.shape[1] == 512
