@@ -5,7 +5,7 @@ def L_metric(feat1, feat2, same_class=True):
     if same_class:
         return F.mse_loss(feat1, feat2)
     else:
-        return max(0, 1-F.mse_loss(feat1, feat2))
+        return max(0, F.mse_loss(feat1, feat2)-1)
 
 def L_divergence(feats):
     n = feats.shape[0]
