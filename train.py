@@ -127,7 +127,7 @@ if __name__ == '__main__':
         loss_heter /= (i+1)
         print('Epoch %d\thomo:%.4f\theter:%.4f'%(epoch, loss_homo, loss_heter))
         if (loss_homo+loss_heter) < best_performace:
-            best_performace = loss
+            best_performace = loss_homo + loss_heter
             torch.save({'state_dict': model.cpu().state_dict(), 'epoch': epoch+1, 'loss': loss_heter+loss_heter}, \
                         os.path.join(args.ckpt, '%d_ckpt.pth'%epoch))
             shutil.copy(os.path.join(args.ckpt, '%d_ckpt.pth'%epoch), os.path.join(args.ckpt, 'best_performance.pth'))
