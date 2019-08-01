@@ -91,7 +91,7 @@ if __name__ == '__main__':
                                         break
                                 if update:
                                     imgs = np.concatenate([np.transpose(cv2.resize(cv2.imread(os.path.join(args.img_folder_test, d['fn'])), (250, 250))[..., ::-1], (2, 0, 1))[np.newaxis] for d in top_4[j]['top_8']])
-                                    vis.images(imgs, win=j, opts=dict(title='IMG_%d'%j))
+                                    vis.images(imgs, win=j, nrow=2, opts=dict(title='IMG_%d'%j))
 
         for item in top_4.values():
             print(item['fn'], '\n', item['top_8'], '\n\n')
