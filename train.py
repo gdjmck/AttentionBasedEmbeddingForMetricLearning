@@ -109,23 +109,26 @@ if __name__ == '__main__':
     for epoch in range(start_epoch, args.epochs):
         model.train()
 
-        loss = 0
+        loss_homo, loss_heter = 0, 0
         for i, batch in enumerate(dataset):
             batch = batch.to(device)
             embeddings = model(batch)
 
             optimizer.zero_grad()
-            l = criterion.loss_func(embeddings)
+            l_homo, l_heter = criterion.loss_func(embeddings)
+            l = l_homo+l_heter
             l.backward()
             optimizer.step()
 
-            loss += l
+            loss_homo += l_homo
+            loss_heter += l_heter
             # print('\tloss: %.4f'%(loss / (i+1)))
-        loss /= (i+1)
-        print('Batch %d\tloss:%.4f'%(epoch, loss))
-        if loss < best_performace:
+        loss_homo /= (i+1)
+        loss_heter /= (i+1)
+        print('Epoch %d\thomo:%.4f\theter:%.4f'%(epoch, loss_homo, loss_heter))
+        if (loss_homo+loss_heter) < best_performace:
             best_performace = loss
-            torch.save({'state_dict': model.cpu().state_dict(), 'epoch': epoch+1, 'loss': loss}, \
+            torch.save({'state_dict': model.cpu().state_dict(), 'epoch': epoch+1, 'loss': loss_heter+loss_heter}, \
                         os.path.join(args.ckpt, '%d_ckpt.pth'%epoch))
             shutil.copy(os.path.join(args.ckpt, '%d_ckpt.pth'%epoch), os.path.join(args.ckpt, 'best_performance.pth'))
             print('Saved model.')
