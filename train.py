@@ -70,8 +70,8 @@ if __name__ == '__main__':
                 if i < 4:
                     query, atts = model(batch[0], ret_att=True)
                     imgs = MetricData.tensor2img(batch[0])
-                    print('number of images in batch:', len(imgs))
-                    print('number of attentions in batch:', len(atts))
+                    print('number of images in batch:', len(imgs), imgs[0].shape, imgs[0].min(), imgs[0].max())
+                    print('number of attentions in batch:', len(atts), atts[0].shape)
                     top_4[i] = {'fn': batch[1][0], 'query': query.cpu().numpy(), 'top_8': []}
                     vis.image(np.transpose(cv2.imread(os.path.join(args.img_folder_test, top_4[i]['fn']))[..., ::-1], (2, 0, 1)), \
                         win=i+100, opts=dict(title='Query_%d'%i))    
