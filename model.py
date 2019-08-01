@@ -70,7 +70,7 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         # N x 1024 x 1 x 1
         x = torch.flatten(x, 1)
         # N x 1024
-        x = self.dropout(x)
+        #x = self.dropout(x)
         # N x 1024
         x = self.last_fc(x)
         # N x (512/M)
@@ -94,8 +94,8 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         # N x 3 x 224 x 224
         sp = self.feat_spatial(x)
         att_input = self.att_prep(sp)
-        atts = [torch.sigmoid(att_func(att_input)) for att_func in self.att]
-        embedding = torch.cat([self.feat_global(att*sp).unsqueeze(1) for att in atts], 1)
+        atts = [torch.sigmoid(self.att[i](att_input)) for i in len(self.att)]
+        embedding = torch.cat([self.feat_global(atts[i]*sp).unsqueeze(1) for i in len(atts)], 1)
         return (embedding, atts) if ret_att else embedding
         '''
         embeddings = torch.cat([self.feat_global(att*sp) for att in atts], 1)
