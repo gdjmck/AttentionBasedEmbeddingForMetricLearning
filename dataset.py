@@ -97,7 +97,7 @@ if __name__ == '__main__':
                                     anno_file='/home/chk/cars_stanford/devkit/cars_train_annos.mat', \
                                     idx_file='/home/chk/cars_stanford/devkit/cars_train_annos_idx.pkl', \
                                     return_fn=True)
-    dataset = torch.utils.data.DataLoader(data, sampler=SourceSampler(data))
+    dataset = torch.utils.data.DataLoader(data, batch_sampler=SourceSampler(data))
 
     from model import MetricLearner
     model = MetricLearner()
