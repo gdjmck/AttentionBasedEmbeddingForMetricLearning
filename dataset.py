@@ -4,6 +4,7 @@ import torch
 import os
 import numpy as np
 from PIL import Image
+from scipy.special import comb
 import torchvision.transforms as transforms
 
 mean, std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
@@ -57,37 +58,38 @@ class MetricData(torch.utils.data.Dataset):
         return img if not self.return_fn else (img, self.fns[i])
 
 class SourceSampler(torch.utils.data.Sampler):
-    def __init__(self, data_source, batch_size=32):
+    def __init__(self, data_source, batch_k=2, batch_size=32):
         self.data_source = data_source
+        self.batch_k = batch_k
         self.num_samples = len(self.data_source)
         self.batch_size = batch_size
         self.idx_dict = self.data_source.idx
 
+        
+        labels, num_samples = np.unique(self.data_source.labels, return_counts=True)
+        self.max_samples = max(num_samples)
+        self.min_samples = min(num_samples)
+        self.labels = labels
+
+        assert self.min_samples >= self.batch_k
+
     def __len__(self):
-        return self.num_samples * self.batch_size * 2
+        # return self.num_samples * self.batch_size * 2
+        iter_len = len(self.labels) * (comb(self.max_samples, self.batch_k) + comb(self.min_samples, self.batch_k))
+        return iter_len - iter_len % self.batch_size
 
     def __iter__(self):
-        indices = torch.randperm(self.num_samples)
-        ret_idx = []
-        for i, idx in enumerate(indices):
-            label = self.data_source.labels[idx]
-            if i % self.batch_size < self.batch_size / 2: # positive pair
+        while(True):
+            # sample both positive and negative labels
+            pos_labels = np.random.choice(self.labels, int(self.batch_size/(2*self.batch_k)), replace=False)
+            neg_labels = np.random.choice(self.labels, int(self.batch_size/(2*self.batch_k)), replace=False)
+            ret_idx = []
+            for label in pos_labels:
                 idx_list = self.idx_dict[label]
-                s = np.random.choice(idx_list, size=2, replace=False)
-                # print('\t\t', s)
-                ret_idx.extend([idx, s[1]] if s[0] == idx else s)
-                '''
-                print('\tpositive pair', ret_idx[-1], '\t', \
-                    self.data_source.labels[ret_idx[-2]], '\t', self.data_source.labels[ret_idx[-1]])
-                '''
-            else: # negative pair
-                # 从非idx中抽一个label
-                neg_labels = np.random.choice(list(self.idx_dict.keys()), 2, replace=False)
-                neg_label = neg_labels[0] if neg_labels[0] != label else neg_labels[1]
-                s = np.random.choice(self.idx_dict[neg_label], 1)
-                ret_idx.extend([idx, s[0]])
-                # print('\tnegative pair', ret_idx[-1], '\t', self.data_source.labels[ret_idx[-1]], '\t', self.data_source.labels[ret_idx[-2]])
-        return iter(ret_idx)
+                ret_idx.extend(np.random.choice(idx_list, 2, replace=False))
+            for label in neg_labels:
+                ret_idx.extend(np.random.choice(self.idx_dict[label], 2, replace=False))
+            yield ret_idx
 
 
 if __name__ == '__main__':
