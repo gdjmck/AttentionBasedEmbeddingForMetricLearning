@@ -20,7 +20,7 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         self.out_dim = int(512 / self.att_heads)
         self.att = nn.ModuleList([nn.Sequential(nn.Conv2d(in_channels=832, out_channels=480, kernel_size=1), nn.ReLU(inplace=True)) for i in range(att_heads)])
         for layer in self.att:
-            nn.init.xavier_uniform_(layer.layer[0].weight)
+            nn.init.xavier_uniform_(layer[0].weight)
         self.last_fc = nn.Linear(1024, self.out_dim)
 
     def feat_spatial(self, x):
