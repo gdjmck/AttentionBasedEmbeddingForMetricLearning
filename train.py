@@ -40,7 +40,7 @@ if __name__ == '__main__':
 
     device = torch.device('cuda:{}'.format(args.gpu_ids[0])) if args.gpu_ids else torch.device('cpu')
     data = MetricData(data_root=args.img_folder, anno_file=args.anno, idx_file=args.idx_file)
-    dataset = torch.utils.data.DataLoader(data, batch_sampler=SourceSampler(data, args.batch), num_workers=args.num_workers)
+    dataset = torch.utils.data.DataLoader(data, batch_sampler=SourceSampler(data, batch_size=args.batch), num_workers=args.num_workers)
     model = MetricLearner(pretrain=args.pretrain)
     if args.resume:
         if args.ckpt.endswith('.pth'):
