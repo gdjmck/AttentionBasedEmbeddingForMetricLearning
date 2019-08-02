@@ -95,8 +95,9 @@ class SourceSampler(torch.utils.data.Sampler):
 if __name__ == '__main__':
     data = MetricData(data_root='/home/chk/cars_stanford/cars_train', \
                                     anno_file='/home/chk/cars_stanford/devkit/cars_train_annos.mat', \
-                                    idx_file='/home/chk/cars_stanford/devkit/cars_train_annos_idx.pkl')
-    dataset = torch.utils.data.DataLoader(data, batch_size=64, sampler=SourceSampler(data))
+                                    idx_file='/home/chk/cars_stanford/devkit/cars_train_annos_idx.pkl', \
+                                    return_fn=True)
+    dataset = torch.utils.data.DataLoader(data, sampler=SourceSampler(data))
 
     from model import MetricLearner
     model = MetricLearner()
