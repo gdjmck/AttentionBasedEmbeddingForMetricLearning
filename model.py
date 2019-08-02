@@ -94,7 +94,7 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         # N x 3 x 224 x 224
         sp = self.feat_spatial(x)
         att_input = self.att_prep(sp)
-        atts = [torch.sigmoid(self.att[i](att_input)) for i in range(len(self.att))]
+        atts = [self.att[i](att_input) for i in range(len(self.att))]
         embedding = torch.cat([self.feat_global(atts[i]*sp).unsqueeze(1) for i in range(len(atts))], 1)
         return (embedding, atts) if ret_att else embedding
         '''
