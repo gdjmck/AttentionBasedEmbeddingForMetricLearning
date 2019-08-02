@@ -21,8 +21,10 @@ def loss_func(tensor):
         loss_homo, loss_heter = 0, 0
         for i in range(0, batch_split, 2):
                 loss_homo += L_divergence(tensor[i, ...])
+                loss_homo += L_divergence(tensor[i+1, ...])
                 loss_homo += L_metric(tensor[i, ...], tensor[i+1, ...])
         for i in range(batch_split, batch_split*2, 2):
                 loss_heter += L_divergence(tensor[i, ...])
+                loss_heter += L_divergence(tensor[i+1, ...])
                 loss_heter += L_metric(tensor[i, ...], tensor[i+1, ...], False)
         return loss_homo, loss_heter
