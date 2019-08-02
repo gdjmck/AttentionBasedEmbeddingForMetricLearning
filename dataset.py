@@ -101,7 +101,7 @@ if __name__ == '__main__':
 
     from model import MetricLearner
     model = MetricLearner()
-    for label, td in dataset:
+    for td, label in dataset:
         print('Batch shape:\t', td.shape, '\t', label)
         pred = model(td)
         print(pred.shape)
