@@ -18,7 +18,7 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         assert 512 % att_heads == 0
         self.att_heads = att_heads
         self.out_dim = int(512 / self.att_heads)
-        self.att = nn.ModuleList([nn.Conv2d(in_channels=832, out_channels=480, kernel_size=1) for i in range(att_heads)])
+        self.att = nn.ModuleList([nn.Sequential(nn.Conv2d(in_channels=832, out_channels=480, kernel_size=1), nn.ReLU(inplace=True)) for i in range(att_heads)])
         for layer in self.att:
             nn.init.xavier_uniform_(layer.weight)
         self.last_fc = nn.Linear(1024, self.out_dim)
