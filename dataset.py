@@ -51,7 +51,7 @@ class MetricData(torch.utils.data.Dataset):
 
 
     def __getitem__(self, i):
-        # print('__getitem__\t', i%16, '\tlabel:', self.labels[i])
+        print('__getitem__\t', i, i%16, '\tlabel:', self.labels[i])
         #label = self.labels[i]
         img = Image.open(os.path.join(self.data_root, self.fns[i])).convert('RGB')
         img = self.transforms(img)
@@ -64,8 +64,8 @@ class SourceSampler(torch.utils.data.Sampler):
         self.num_samples = len(self.data_source)
         self.batch_size = batch_size
         self.idx_dict = self.data_source.idx
+        print('number of data:', len(self.data_source))
 
-        
         labels, num_samples = np.unique(self.data_source.labels, return_counts=True)
         self.max_samples = max(num_samples)
         self.min_samples = min(num_samples)

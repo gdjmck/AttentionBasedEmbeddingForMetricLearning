@@ -130,7 +130,7 @@ if __name__ == '__main__':
             # print('\tloss: %.4f'%(loss / (i+1)))
         loss_homo /= (i+1)
         loss_heter /= (i+1)
-        print('Epoch %d\thomo:%.4f\theter:%.4f'%(epoch, loss_homo, loss_heter))
+        print('Epoch %d batches %d\thomo:%.4f\theter:%.4f'%(epoch, i+1, loss_homo, loss_heter))
         if (loss_homo+loss_heter) < best_performace:
             best_performace = loss_homo + loss_heter
             torch.save({'state_dict': model.cpu().state_dict(), 'epoch': epoch+1, 'loss': best_performace}, \
