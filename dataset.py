@@ -90,9 +90,7 @@ class SourceSampler(torch.utils.data.Sampler):
                 neg_label = np.random.choice([l for l in self.labels if l != label], 1)[0]
                 label_idx = np.random.choice(self.data_source.idx[label], 1)
                 neg_label_idx = np.random.choice(self.data_source.idx[neg_label], 1)
-                # print('\t', type(label_idx), label_idx, neg_label_idx)
-                ret_idx.extend([label_idx[0]], neg_label_idx[0])
-                # print('\t\tnegative labels:', neg_label, label, '\t', ret_idx[-2:])
+                ret_idx.extend([label_idx[0], neg_label_idx[0]])
             yield ret_idx
 
 
