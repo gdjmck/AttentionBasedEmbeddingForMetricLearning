@@ -3,16 +3,16 @@ import torch.nn.functional as F
 
 def L_metric(feat1, feat2, same_class=True):
     if same_class:
-        return F.mse_loss(feat1, feat2)
+        return torch.dist(feat1, feat2).pow(2)
     else:
-        return max(0, 1-F.mse_loss(feat1, feat2))
+        return torch.clamp(1-torch.dist(feat1, feat2).pow(2), min=0)
 
 def L_divergence(feats):
     n = feats.shape[0]
     loss = 0
     for i in range(n):
         for j in range(i+1, n):
-            loss += max(0, 1-F.mse_loss(feats[i, ...], feats[j, ...]))
+            loss += max(0, 1-torch.sum((feats[i, ...] - feats[j, ...])**2))
     return loss
 
 def loss_func(tensor):
