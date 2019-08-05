@@ -127,7 +127,8 @@ if __name__ == '__main__':
 
             loss_homo += l_homo
             loss_heter += l_heter
-            # print('\tloss: %.4f'%(loss / (i+1)))
+            if i % 50 == 0:
+                print('\tloss: %.4f'%(loss.item() / (i+1)), batch.shape)
         loss_homo /= (i+1)
         loss_heter /= (i+1)
         print('Epoch %d batches %d\thomo:%.4f\theter:%.4f'%(epoch, i+1, loss_homo, loss_heter))
