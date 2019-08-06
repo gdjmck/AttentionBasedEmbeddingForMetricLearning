@@ -75,7 +75,9 @@ class SourceSampler(torch.utils.data.Sampler):
     def __len__(self):
         # return self.num_samples * self.batch_size * 2
         iter_len = len(self.labels) * comb(self.min_samples, self.batch_k)
-        return int(iter_len - iter_len % self.batch_size)
+        iter_len = int(iter_len - iter_len % self.batch_size)
+        assert iter_len % self.batch_size == 0
+        return iter_len
 
     def __iter__(self):
         while(True):
