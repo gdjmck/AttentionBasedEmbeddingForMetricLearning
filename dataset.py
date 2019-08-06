@@ -99,12 +99,14 @@ if __name__ == '__main__':
                                     anno_file='/home/chk/cars_stanford/devkit/cars_train_annos.mat', \
                                     idx_file='/home/chk/cars_stanford/devkit/cars_train_annos_idx.pkl', \
                                     return_fn=True)
-    dataset = torch.utils.data.DataLoader(data, batch_sampler=SourceSampler(data))
+    sampler = SourceSampler(data)
+    print('Batch sampler len:', len(sampler))
+    dataset = torch.utils.data.DataLoader(data, batch_sampler=sampler)
 
     from model import MetricLearner
     model = MetricLearner()
-    for td, label in dataset:
-        print('Batch shape:\t', td.shape, '\t', label)
-        pred = model(td)
-        print(pred.shape)
-        break
+    for i, (td, label) in enumerate(dataset):
+        if i % 100 == 0:
+            print(i, '\tBatch shape:\t', td.shape)
+        #pred = model(td)
+        #print(pred.shape)
