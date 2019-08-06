@@ -114,24 +114,26 @@ if __name__ == '__main__':
     for epoch in range(start_epoch, args.epochs):
         model.train()
 
-        loss_homo, loss_heter = 0, 0
+        loss_div, loss_homo, loss_heter = 0, 0, 0
         for i, batch in enumerate(dataset):
             batch = batch.to(device)
             embeddings = model(batch)
 
             optimizer.zero_grad()
-            l_homo, l_heter = criterion.loss_func(embeddings)
-            l = l_homo+l_heter
+            l_div, l_homo, l_heter = criterion.loss_func(embeddings)
+            l = l_div + l_homo + l_heter
             l.backward()
             optimizer.step()
 
-            loss_homo += l_homo
-            loss_heter += l_heter
-            if i % 50 == 0:
-                print('\tloss homo: %.4f\tloss heter: %.4f'%(loss_homo.item() / (i+1), loss_heter.item()/(i+1)), batch.shape)
+            loss_homo += l_homo.item()
+            loss_heter += l_heter.item()
+            loss_div += l_div.item()
+            if i % 100 == 0:
+                print('\tBatch %d\tloss div: %.4f (%.3f)\tloss homo: %.4f (%.3f)\tloss heter: %.4f (%.3f)'%\
+                    (i, loss_div/(i+1), loss_div/(loss_div+loss_heter+loss_heter), loss_homo/(i+1), loss_homo/(loss_div+loss_homo+loss_heter), loss_heter/(i+1), loss_heter/(loss_div+loss_heter+loss_homo)), batch.shape)
         loss_homo /= (i+1)
         loss_heter /= (i+1)
-        print('Epoch %d batches %d\thomo:%.4f\theter:%.4f'%(epoch, i+1, loss_homo, loss_heter))
+        print('Epoch %d batches %d\tdiv:%.4f\thomo:%.4f\theter:%.4f'%(epoch, i+1, loss_div, loss_homo, loss_heter))
         if (loss_homo+loss_heter) < best_performace:
             best_performace = loss_homo + loss_heter
             torch.save({'state_dict': model.cpu().state_dict(), 'epoch': epoch+1, 'loss': best_performace}, \
