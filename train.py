@@ -10,6 +10,8 @@ import cv2
 from model import MetricLearner
 from dataset import MetricData, SourceSampler
 
+eps = 1e-8
+
 def get_args():
     parser = argparse.ArgumentParser(description='Face Occlusion Regression')
     # train
@@ -130,7 +132,7 @@ if __name__ == '__main__':
             loss_div += l_div.item()
             if i % 100 == 0:
                 print('\tBatch %d\tloss div: %.4f (%.3f)\tloss homo: %.4f (%.3f)\tloss heter: %.4f (%.3f)'%\
-                    (i, loss_div/(i+1), loss_div/(loss_div+loss_heter+loss_heter), loss_homo/(i+1), loss_homo/(loss_div+loss_homo+loss_heter), loss_heter/(i+1), loss_heter/(loss_div+loss_heter+loss_homo)), batch.shape)
+                    (i, loss_div/(i+1), (loss_div+eps)/(loss_div+loss_heter+loss_heter+eps), loss_homo/(i+1), (loss_homo+eps)/(loss_div+loss_homo+loss_heter+eps), loss_heter/(i+1), (loss_heter+eps)/(loss_div+loss_heter+loss_homo+eps)), batch.shape)
         loss_homo /= (i+1)
         loss_heter /= (i+1)
         print('Epoch %d batches %d\tdiv:%.4f\thomo:%.4f\theter:%.4f'%(epoch, i+1, loss_div, loss_homo, loss_heter))
