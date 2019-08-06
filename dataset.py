@@ -75,12 +75,11 @@ class SourceSampler(torch.utils.data.Sampler):
     def __len__(self):
         # return self.num_samples * self.batch_size * 2
         iter_len = len(self.labels) * comb(self.min_samples, self.batch_k)
-        iter_len = int(iter_len - iter_len % self.batch_size)
-        assert iter_len % self.batch_size == 0
+        iter_len = int(iter_len // self.batch_size)
         return iter_len
 
     def __iter__(self):
-        while(True):
+        for i in range(self.__len__()):
             # sample both positive and negative labels
             pos_labels = np.random.choice(self.labels, int(self.batch_size/(2*self.batch_k)), replace=False)
             neg_labels = np.random.choice(self.labels, int(self.batch_size/(2*self.batch_k)), replace=False)
