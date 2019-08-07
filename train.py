@@ -7,6 +7,10 @@ import numpy as np
 import visdom
 import criterion
 import cv2
+import torchvision
+import torchvision.transforms as transforms
+from PIL import Image
+from sampler import BalancedBatchSampler
 from model import MetricLearner
 from dataset import MetricData, SourceSampler
 
@@ -41,8 +45,16 @@ if __name__ == '__main__':
     args = get_args()
 
     device = torch.device('cuda:{}'.format(args.gpu_ids[0])) if args.gpu_ids else torch.device('cpu')
-    data = MetricData(data_root=args.img_folder, anno_file=args.anno, idx_file=args.idx_file)
-    dataset = torch.utils.data.DataLoader(data, batch_sampler=SourceSampler(data, batch_size=args.batch), num_workers=args.num_workers)
+    #data = MetricData(data_root=args.img_folder, anno_file=args.anno, idx_file=args.idx_file)
+    data = torchvision.datasets.ImageFolder(args.img_folder, transforms.Compose([
+                                            transforms.Resize(228),
+                                            transforms.RandomCrop((224, 224)),
+                                            transforms.RandomHorizontalFlip(),
+                                            transforms.ToTensor(),
+                                            transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                            std=[0.229, 0.224, 0.225])]),
+                                            loader=lambda x: Image.open(x).convert('RGB'))
+    dataset = torch.utils.data.DataLoader(data, batch_sampler=BalancedBatchSampler(data, batch_size=args.batch, batch_k=5), num_workers=args.num_workers)
     model = MetricLearner(pretrain=args.pretrain)
     if args.resume:
         if args.ckpt.endswith('.pth'):
@@ -119,7 +131,8 @@ if __name__ == '__main__':
         loss_div, loss_homo, loss_heter = 0, 0, 0
         for i, batch in enumerate(dataset):
             batch = batch.to(device)
-            embeddings = model(batch)
+            a_indices, anchors, positives, negatives, _ = model(batch)
+            print(anchors.shape, positives.shape, negatives.shape)
 
             optimizer.zero_grad()
             l_div, l_homo, l_heter = criterion.loss_func(embeddings)
@@ -135,6 +148,7 @@ if __name__ == '__main__':
                     (i, loss_div/(i+1), (loss_div+eps)/(loss_div+loss_heter+loss_homo+eps), loss_homo/(i+1), (loss_homo+eps)/(loss_div+loss_homo+loss_heter+eps), loss_heter/(i+1), (loss_heter+eps)/(loss_div+loss_heter+loss_homo+eps)))
         loss_homo /= (i+1)
         loss_heter /= (i+1)
+        loss_div /= (i+1)
         print('Epoch %d batches %d\tdiv:%.4f\thomo:%.4f\theter:%.4f'%(epoch, i+1, loss_div, loss_homo, loss_heter))
         if (loss_homo+loss_heter) < best_performace:
             best_performace = loss_homo + loss_heter

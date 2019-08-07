@@ -28,3 +28,6 @@ def loss_func(tensor):
                 loss_div += L_divergence(tensor[i+1, ...])
                 loss_heter += L_metric(tensor[i, ...], tensor[i+1, ...], False)
         return loss_div, loss_homo, loss_heter
+
+def criterion(anchors, positives, negatives):
+        print(anchors.shape)
