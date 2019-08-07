@@ -107,7 +107,8 @@ if __name__ == '__main__':
     from model import MetricLearner
     model = MetricLearner()
     for i, (td, label) in enumerate(dataset):
-        if i % 100 == 0:
-            print(i, '\tBatch shape:\t', td.shape)
+        # if i % 100 == 0:
+        print(i, '\tBatch shape:\t', td.shape, '\t', label)
+        break
         #pred = model(td)
         #print(pred.shape)
