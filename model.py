@@ -1,11 +1,13 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+import numpy as np
 import torchvision.models as models
 import GoogLeNet
 import os
 
 class MetricLearner(GoogLeNet.GoogLeNet):
-    def __init__(self, att_heads=8, pretrain=None):
+    def __init__(self, att_heads=8, pretrain=None, batch_k=5, normalize=False):
         super(MetricLearner, self).__init__()
         if pretrain:
             if os.path.exists(pretrain):
@@ -22,6 +24,8 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         for layer in self.att:
             nn.init.xavier_uniform_(layer[0].weight)
         self.last_fc = nn.Linear(1024, self.out_dim)
+
+        self.sampled = DistanceWeightedSampling(batch_k=batch_k, normalize=normalize)
 
     def feat_spatial(self, x):
         # N x 3 x 224 x 224
@@ -90,18 +94,111 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         # N x 832 x 14 x 14      
         return e4
 
-    def forward(self, x, ret_att=False):
+    def forward(self, x, ret_att=False, sampling=True):
         # N x 3 x 224 x 224
         sp = self.feat_spatial(x)
         att_input = self.att_prep(sp)
         atts = [self.att[i](att_input) for i in range(len(self.att))]
         embedding = torch.cat([self.feat_global(atts[i]*sp).unsqueeze(1) for i in range(len(atts))], 1)
-        return (embedding, atts) if ret_att else embedding
-        '''
-        embeddings = torch.cat([self.feat_global(att*sp) for att in atts], 1)
-        assert embeddings.shape[1] == 512
-        return embeddings
-        '''
+        if sampling:
+            return self.sampled(embedding)
+        else:
+            return (embedding, atts) if ret_att else embedding
+
+def l2_norm(x):
+    if len(x.shape):
+        x = x.reshape((x.shape[0],-1))
+    return F.normalize(x, p=2, dim=1)
+
+
+def get_distance(x):
+    _x = x.detach()
+    sim = torch.matmul(_x, _x.t())
+    sim = torch.clamp(sim, max=1.0)
+    dist = 2 - 2*sim
+    dist += torch.eye(dist.shape[0]).to(dist.device)   # maybe dist += torch.eye(dist.shape[0]).to(dist.device)*1e-8
+    dist = dist.sqrt()
+    return dist
+
+class   DistanceWeightedSampling(nn.Module):
+    '''
+    parameters
+    ----------
+    batch_k: int
+        number of images per class
+
+    Inputs:
+        data: input tensor with shapeee (batch_size, edbed_dim)
+            Here we assume the consecutive batch_k examples are of the same class.
+            For example, if batch_k = 5, the first 5 examples belong to the same class,
+            6th-10th examples belong to another class, etc.
+    Outputs:
+        a_indices: indicess of anchors
+        x[a_indices]
+        x[p_indices]
+        x[n_indices]
+        xxx
+
+    '''
+
+    def __init__(self, batch_k, cutoff=0.5, nonzero_loss_cutoff=1.4, normalize =False,  **kwargs):
+        super(DistanceWeightedSampling,self).__init__()
+        self.batch_k = batch_k
+        self.cutoff = cutoff
+        self.nonzero_loss_cutoff = nonzero_loss_cutoff
+        self.normalize = normalize
+
+    def forward(self, x):
+        k = self.batch_k
+        n, d = x.shape
+        distance = get_distance(x) # n x n
+        try:
+            assert (distance != distance).any() == 0 # 因为n x d 跟 d x n算距离时乘出来的结果有负数导致sqrt操作后得到nan
+        except AssertionError:
+            print('Got an nan', x)
+        distance = distance.clamp(min=self.cutoff)
+        log_weights = ((2.0 - float(d)) * distance.log() - (float(d-3)/2)*torch.log(torch.clamp(1.0 - 0.25*(distance*distance), min=1e-8)))
+
+        if self.normalize:
+            log_weights = (log_weights - log_weights.min()) / (log_weights.max() - log_weights.min() + 1e-8)
+
+        weights = torch.exp(log_weights - torch.max(log_weights))
+
+        if x.device != weights.device:
+            weights = weights.to(x.device)
+
+        mask = torch.ones_like(weights)
+        for i in range(0,n,k):
+            mask[i:i+k, i:i+k] = 0
+
+        mask_uniform_probs = mask.double() *(1.0/(n-k))
+
+        weights = weights*mask*((distance < self.nonzero_loss_cutoff).float()) + 1e-8
+        weights_sum = torch.sum(weights, dim=1, keepdim=True)
+        weights = weights / weights_sum
+
+        a_indices = []
+        p_indices = []
+        n_indices = []
+
+        np_weights = weights.cpu().numpy()
+        # np_weights = np.nan_to_num(np_weights, 1e-8)
+        for i in range(n):
+            block_idx = i // k
+
+            if weights_sum[i] != 0:
+                n_indices +=  np.random.choice(n, k-1, p=np_weights[i]).tolist()
+            else:
+                n_indices +=  np.random.choice(n, k-1, p=mask_uniform_probs[i]).tolist()
+            for j in range(block_idx * k, (block_idx + 1)*k):
+                if j != i:
+                    a_indices.append(i)
+                    p_indices.append(j)
+
+        return  a_indices, x[a_indices], x[p_indices], x[n_indices], x
+
+
+
 
 if __name__ == '__main__':
     import numpy as np
