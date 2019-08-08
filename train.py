@@ -131,8 +131,9 @@ if __name__ == '__main__':
 
         loss_div, loss_homo, loss_heter = 0, 0, 0
         for i, batch in enumerate(dataset):
-            batch = batch.to(device)
-            a_indices, anchors, positives, negatives, _ = model(batch)
+            x, y = batch
+            x = x.to(device)
+            a_indices, anchors, positives, negatives, _ = model(x)
             print(anchors.shape, positives.shape, negatives.shape)
 
             optimizer.zero_grad()
