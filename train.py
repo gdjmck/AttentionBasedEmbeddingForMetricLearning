@@ -56,7 +56,7 @@ if __name__ == '__main__':
                                             std=[0.229, 0.224, 0.225])]),
                                             loader=lambda x: Image.open(x).convert('RGB'))
     dataset = torch.utils.data.DataLoader(data, batch_sampler=BalancedBatchSampler(data, batch_size=args.batch, batch_k=args.batch_k), num_workers=args.num_workers)
-    model = MetricLearner(pretrain=args.pretrain)
+    model = MetricLearner(pretrain=args.pretrain, batch_k=args.batch_k)
     if args.resume:
         if args.ckpt.endswith('.pth'):
             state_dict = torch.load(args.ckpt)
