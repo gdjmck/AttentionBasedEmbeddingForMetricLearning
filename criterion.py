@@ -30,4 +30,8 @@ def loss_func(tensor):
         return loss_div, loss_homo, loss_heter
 
 def criterion(anchors, positives, negatives):
-        print(anchors.shape)
+        loss_homo = L_metric(anchors, positives)
+        loss_heter = L_metric(anchors, negatives, False)
+        loss_div = L_divergence(anchors) + L_divergence(positives) + L_divergence(negatives)
+        return loss_div, loss_homo, loss_heter
+        

@@ -135,9 +135,10 @@ if __name__ == '__main__':
             x = x.to(device)
             a_indices, anchors, positives, negatives, _ = model(x)
             print(anchors.shape, positives.shape, negatives.shape)
+            anchors, positives, negatives = torch.reshape(anchors, (-1, model.att_heads, 512/model.att_heads)), torch.reshape(positives, (-1, model.att_heads, 512/model.att_heads)), torch.reshape(negatives, (-1, model.att_heads, 512/model.att_h))
 
             optimizer.zero_grad()
-            l_div, l_homo, l_heter = criterion.loss_func(embeddings)
+            l_div, l_homo, l_heter = criterion.criterion(anchors, positives, negatives)
             l = l_div + l_homo + l_heter
             l.backward()
             optimizer.step()
