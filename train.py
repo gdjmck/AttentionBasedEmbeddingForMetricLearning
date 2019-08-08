@@ -24,6 +24,7 @@ def get_args():
     parser.add_argument('--epochs', type=int, default=200, help='number of epochs plans to train in total')
     parser.add_argument('--epoch_start', type=int, default=0, help='start epoch to count from')
     parser.add_argument('--batch', type=int, default=8, help='batch size')
+    parser.add_argument('--batch_k', type=int, default=4, help='number of samples for a class of a batch')
     parser.add_argument('--lr', type=float, default=1e-4, help='learning rate')
     parser.add_argument('--ckpt', type=str, default='./ckpt', help='checkpoint folder')
     parser.add_argument('--resume', action='store_true', help='load previous best model and resume training')
@@ -54,7 +55,7 @@ if __name__ == '__main__':
                                             transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                             std=[0.229, 0.224, 0.225])]),
                                             loader=lambda x: Image.open(x).convert('RGB'))
-    dataset = torch.utils.data.DataLoader(data, batch_sampler=BalancedBatchSampler(data, batch_size=args.batch, batch_k=5), num_workers=args.num_workers)
+    dataset = torch.utils.data.DataLoader(data, batch_sampler=BalancedBatchSampler(data, batch_size=args.batch, batch_k=args.batch_k), num_workers=args.num_workers)
     model = MetricLearner(pretrain=args.pretrain)
     if args.resume:
         if args.ckpt.endswith('.pth'):
