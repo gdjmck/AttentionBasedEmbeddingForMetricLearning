@@ -134,8 +134,8 @@ if __name__ == '__main__':
             x, y = batch
             x = x.to(device)
             a_indices, anchors, positives, negatives, _ = model(x)
-            print(anchors.shape, positives.shape, negatives.shape)
-            anchors, positives, negatives = torch.reshape(anchors, (-1, model.att_heads, 512/model.att_heads)), torch.reshape(positives, (-1, model.att_heads, 512/model.att_heads)), torch.reshape(negatives, (-1, model.att_heads, 512/model.att_h))
+            # print(anchors.shape, positives.shape, negatives.shape)
+            anchors, positives, negatives = torch.reshape(anchors, (-1, model.att_heads, int(512/model.att_heads))), torch.reshape(positives, (-1, model.att_heads, int(512/model.att_heads))), torch.reshape(negatives, (-1, model.att_heads, int(512/model.att_heads)))
 
             optimizer.zero_grad()
             l_div, l_homo, l_heter = criterion.criterion(anchors, positives, negatives)
