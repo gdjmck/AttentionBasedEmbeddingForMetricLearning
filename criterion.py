@@ -32,7 +32,9 @@ def loss_func(tensor):
 def criterion(anchors, positives, negatives):
         loss_homo = L_metric(anchors, positives)
         loss_heter = L_metric(anchors, negatives, False)
-        loss_div = L_divergence(anchors) + L_divergence(positives) + L_divergence(negatives)
+        loss_div = 0
+        for i in range(anchors.shape[0]):
+                loss_div += L_divergence(anchors[i, ...]) + L_divergence(positives[i, ...]) + L_divergence(negatives[i, ...])
         return loss_div, loss_homo, loss_heter
         
 def cluster_centroid_loss(cluster_a, cluster_b, margin=1):
