@@ -35,3 +35,21 @@ def criterion(anchors, positives, negatives):
         loss_div = L_divergence(anchors) + L_divergence(positives) + L_divergence(negatives)
         return loss_div, loss_homo, loss_heter
         
+def cluster_centroid_loss(cluster_a, cluster_b, margin=1):
+        '''
+                cluster_a and cluster_b are two batch of data drawn from two different class label
+                we want the distance of all samples from one class are nearer to the centroid of its class than the other class by a margin
+                Larger the size of cluster the better
+        '''
+        centroid_a = torch.mean(cluster_a, 0, keepdim=True)
+        centroid_b = torch.mean(cluster_b, 0, keepdim=True)
+
+        loss_a = torch.clamp(
+                (cluster_a - centroid_a) **2 - (cluster_a - centroid_b) ** 2 + margin,
+                min=0.
+        )
+        loss_b = torch.clamp(
+                (cluster_b - centroid_b) ** 2 - (cluster_b - centroid_a) **2 + margin,
+                min=0.
+        )
+        return loss_a + loss_b
