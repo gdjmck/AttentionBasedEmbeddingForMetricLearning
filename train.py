@@ -156,9 +156,9 @@ if __name__ == '__main__':
         loss_heter /= (i+1)
         loss_div /= (i+1)
         print('Epoch %d batches %d\tdiv:%.4f\thomo:%.4f\theter:%.4f'%(epoch, i+1, loss_div, loss_homo, loss_heter))
-        mlog.update_loss(loss_homo, 'homo')
-        mlog.update_loss(loss_heter, 'heter')
-        mlog.update_loss(loss_div, 'divergence')
+        # mlog.update_loss(loss_homo, 'homo')
+        # mlog.update_loss(loss_heter, 'heter')
+        # mlog.update_loss(loss_div, 'divergence')
         if (loss_homo+loss_heter) < best_performace:
             best_performace = loss_homo + loss_heter
             torch.save({'state_dict': model.cpu().state_dict(), 'epoch': epoch+1, 'loss': best_performace}, \
