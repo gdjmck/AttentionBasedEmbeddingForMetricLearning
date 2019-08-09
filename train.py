@@ -9,6 +9,7 @@ import criterion
 import cv2
 import torchvision
 import torchvision.transforms as transforms
+import torchnet
 from PIL import Image
 from sampler import BalancedBatchSampler
 from model import MetricLearner
@@ -45,6 +46,7 @@ def get_args():
 
 if __name__ == '__main__':
     args = get_args()
+    mlog = torchnet.logger.MeterLogger(env='logger')
 
     device = torch.device('cuda:{}'.format(args.gpu_ids[0])) if args.gpu_ids else torch.device('cpu')
     #data = MetricData(data_root=args.img_folder, anno_file=args.anno, idx_file=args.idx_file)
@@ -154,6 +156,9 @@ if __name__ == '__main__':
         loss_heter /= (i+1)
         loss_div /= (i+1)
         print('Epoch %d batches %d\tdiv:%.4f\thomo:%.4f\theter:%.4f'%(epoch, i+1, loss_div, loss_homo, loss_heter))
+        mlog.update_loss(loss_homo, 'homo')
+        mlog.update_loss(loss_heter, 'heter')
+        mlog.update_loss(loss_div, 'divergence')
         if (loss_homo+loss_heter) < best_performace:
             best_performace = loss_homo + loss_heter
             torch.save({'state_dict': model.cpu().state_dict(), 'epoch': epoch+1, 'loss': best_performace}, \
