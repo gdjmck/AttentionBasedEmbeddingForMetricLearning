@@ -13,6 +13,7 @@ class BalancedBatchSampler(Sampler):
         self.batch_size = batch_size
         self.batch_k = batch_k
         self.length = length
+        print('BalancedBatchSampler len:', self.__len__())
 
         # Save all the indices for all the classes
         for idx in range(0, len(dataset)):
@@ -31,7 +32,7 @@ class BalancedBatchSampler(Sampler):
         #self.currentkey = 0
 
     def __iter__(self):
-        while(True):
+        for i in range(self.__len__()):
             batch = []
             classes = np.random.choice(range(len(self.keys)), size=int(self.batch_size/self.batch_k), replace=False )
             for cls in classes:
@@ -42,7 +43,7 @@ class BalancedBatchSampler(Sampler):
     def __len__(self):
         if self.length is not None:
             return self.length
-        return int(len(self.keys) * (comb(self.max_samples, self.batch_k) + comb(self.min_samples, self.batch_k))/2)
+        return len(self.keys) * comb(self.min_samples, self.batch_k)
         
     def _get_label(self, dataset, idx):
         dataset_type = type(dataset)
