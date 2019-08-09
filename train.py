@@ -66,9 +66,9 @@ if __name__ == '__main__':
         else:
             state_dict = torch.load(os.path.join(args.ckpt, 'best_performance.pth'))
         best_performace = state_dict['loss']
-        start_epoch = state_dict['epoch']
+        start_epoch = state_dict['epoch'] + 1
         model.load_state_dict(state_dict['state_dict'], strict=False)
-        print('Resume training.')
+        print('Resume training. Start from epoch %d'%start_epoch)
     else:
         start_epoch = 0
         best_performace = np.Inf
