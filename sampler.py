@@ -13,7 +13,6 @@ class BalancedBatchSampler(Sampler):
         self.batch_size = batch_size
         self.batch_k = batch_k
         self.length = length
-        print('BalancedBatchSampler len:', self.__len__())
 
         # Save all the indices for all the classes
         for idx in range(0, len(dataset)):
@@ -29,6 +28,7 @@ class BalancedBatchSampler(Sampler):
         assert self.min_samples >= self.batch_k
     
         self.keys = list(self.dataset.keys())
+        print('BalancedBatchSampler len:', self.__len__())
         #self.currentkey = 0
 
     def __iter__(self):
