@@ -40,10 +40,11 @@ class BalancedBatchSampler(Sampler):
                 for k in np.random.choice(range(len(cls_idxs)), size=self.batch_k, replace=False):
                     batch.append(cls_idxs[k])
             yield batch
+
     def __len__(self):
         if self.length is not None:
             return self.length
-        return len(self.keys) * comb(self.min_samples, self.batch_k)
+        return int(len(self.keys) * comb(self.min_samples, self.batch_k) / self.batch_size)
         
     def _get_label(self, dataset, idx):
         dataset_type = type(dataset)
