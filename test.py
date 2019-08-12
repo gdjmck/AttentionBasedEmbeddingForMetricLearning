@@ -13,6 +13,7 @@ def loader_test(fn):
 if __name__ == '__main__':
     args = train.args
     model = train.model
+    model.eval()
 
     data = train.convert_dataset(os.path.join(args.img_folder_test, 'train'))
     # print('class to idx:', data.class_to_idx)
@@ -20,17 +21,18 @@ if __name__ == '__main__':
 
     dataset = torch.utils.data.DataLoader(data)
     embeddings = {}
-    for i, (img, label) in enumerate(dataset):
-        label = label.numpy()[0]
-        print(label)
-        assert label == data.targets[i]
-        img = img.to(train.device)
-        embedding = model(img, sampling=False).cpu().numpy()
-        if label not in embeddings.keys():
-            embeddings[label] = [embedding]
-        else:
-            embeddings[label].append(embedding)
-    
+    with torch.no_grad():
+        for i, (img, label) in enumerate(dataset):
+            label = label.numpy()[0]
+            print(label)
+            assert label == data.targets[i]
+            img = img.to(train.device)
+            embedding = model(img, sampling=False).cpu().numpy()
+            if label not in embeddings.keys():
+                embeddings[label] = [embedding]
+            else:
+                embeddings[label].append(embedding)
+        
     with open('embeddings.pkl', 'wb') as f:
         pickle.dump(embeddings, f)
         print('saved embedding.')        
