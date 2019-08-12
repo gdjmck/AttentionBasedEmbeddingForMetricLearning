@@ -44,37 +44,42 @@ def get_args():
     parser.add_argument('--in_size', type=int, default=128, help='input tensor shape to put into model')
     return parser.parse_args()
 
-if __name__ == '__main__':
-    args = get_args()
-    mlog = torchnet.logger.MeterLogger(env='logger')
+def convert_dataset(folder, loader=lambda x: Image.open(x).convert('RGB')):
+    data = torchvision.datasets.ImageFolder(folder, transforms.Compose([
+                                        transforms.Resize(228),
+                                        transforms.RandomCrop((224, 224)),
+                                        transforms.RandomHorizontalFlip(),
+                                        transforms.ToTensor(),
+                                        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                        std=[0.229, 0.224, 0.225])]),
+                                        loader=loader)
+    return data   
 
-    device = torch.device('cuda:{}'.format(args.gpu_ids[0])) if args.gpu_ids else torch.device('cpu')
-    #data = MetricData(data_root=args.img_folder, anno_file=args.anno, idx_file=args.idx_file)
-    data = torchvision.datasets.ImageFolder(args.img_folder, transforms.Compose([
-                                            transforms.Resize(228),
-                                            transforms.RandomCrop((224, 224)),
-                                            transforms.RandomHorizontalFlip(),
-                                            transforms.ToTensor(),
-                                            transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                            std=[0.229, 0.224, 0.225])]),
-                                            loader=lambda x: Image.open(x).convert('RGB'))
-    dataset = torch.utils.data.DataLoader(data, batch_sampler=BalancedBatchSampler(data, batch_size=args.batch, batch_k=args.batch_k, length=args.num_batch), num_workers=args.num_workers)
-    model = MetricLearner(pretrain=args.pretrain, batch_k=args.batch_k)
-    if args.resume:
-        if args.ckpt.endswith('.pth'):
-            state_dict = torch.load(args.ckpt)
-        else:
-            state_dict = torch.load(os.path.join(args.ckpt, 'best_performance.pth'))
-        best_performace = state_dict['loss']
-        start_epoch = state_dict['epoch'] + 1
-        model.load_state_dict(state_dict['state_dict'], strict=False)
-        print('Resume training. Start from epoch %d'%start_epoch)
+args = get_args()
+mlog = torchnet.logger.MeterLogger(env='logger')
+
+device = torch.device('cuda:{}'.format(args.gpu_ids[0])) if args.gpu_ids else torch.device('cpu')
+#data = MetricData(data_root=args.img_folder, anno_file=args.anno, idx_file=args.idx_file)
+data = convert_dataset(args.img_folder)
+dataset = torch.utils.data.DataLoader(data, batch_sampler=BalancedBatchSampler(data, batch_size=args.batch, batch_k=args.batch_k, length=args.num_batch), num_workers=args.num_workers)
+model = MetricLearner(pretrain=args.pretrain, batch_k=args.batch_k)
+if args.resume:
+    if args.ckpt.endswith('.pth'):
+        state_dict = torch.load(args.ckpt)
     else:
-        start_epoch = 0
-        best_performace = np.Inf
-    model = model.to(device)
-    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
+        state_dict = torch.load(os.path.join(args.ckpt, 'best_performance.pth'))
+    best_performace = state_dict['loss']
+    start_epoch = state_dict['epoch'] + 1
+    model.load_state_dict(state_dict['state_dict'], strict=False)
+    print('Resume training. Start from epoch %d'%start_epoch)
+else:
+    start_epoch = 0
+    best_performace = np.Inf
+model = model.to(device)
+optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
 
+
+if __name__ == '__main__':
     # TEST DATASET
     if args.test and args.resume:
         dataset_test = torch.utils.data.DataLoader(MetricData(args.img_folder_test, args.anno_test, args.idx_file_test, return_fn=True), \
