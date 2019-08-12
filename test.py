@@ -24,6 +24,7 @@ if __name__ == '__main__':
         label = label.numpy()[0]
         print(label)
         assert label == data.targets[i]
+        img = img.to(train.device)
         embedding = model(img).cpu().numpy()
         if label not in embeddings.keys():
             embeddings[label] = [embedding]
