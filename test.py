@@ -20,8 +20,10 @@ if __name__ == '__main__':
 
     dataset = torch.utils.data.DataLoader(data)
     embeddings = {}
-    for i, img in enumerate(dataset):
-        label = data.targets[i]
+    for i, (img, label) in enumerate(dataset):
+        label = label.numpy()[0]
+        print(label)
+        assert label == data.targets[i]
         embedding = model(img).cpu().numpy()
         if label not in embeddings.keys():
             embeddings[label] = [embedding]
