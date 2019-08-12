@@ -14,7 +14,7 @@ if __name__ == '__main__':
     args = train.args
     model = train.model
 
-    data = train.convert_dataset(os.path.join(args.img_folder_test, 'train'), loader_test)
+    data = train.convert_dataset(os.path.join(args.img_folder_test, 'train'))
     # print('class to idx:', data.class_to_idx)
     # print(len(data.targets), data.targets)
 
