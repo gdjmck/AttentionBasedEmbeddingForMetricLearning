@@ -1,6 +1,7 @@
 import torchvision
 from PIL import Image
 import train
+import os
 
 def loader_test(fn):
     parts = fn.split('/')
@@ -11,7 +12,6 @@ if __name__ == '__main__':
     args = train.args
     model = train.model
 
-    data = train.convert_dataset(args.img_folder_test, loader_test)
-    for item in iter(data):
-        print(item)
-        break
+    data = train.convert_dataset(os.path.join(args.img_folder_test, 'train'), loader_test)
+    print('class to idx:', data.class_to_idx)
+    print(len(data.targets), data.targets)
