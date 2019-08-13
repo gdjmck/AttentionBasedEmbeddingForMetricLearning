@@ -6,8 +6,22 @@ import numpy as np
 from PIL import Image
 from scipy.special import comb
 import torchvision.transforms as transforms
+import torchvision.datasets as datasets
 
 mean, std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
+
+
+class ImageFolderWithName(datasets.ImageFolder):
+    def __init__(self, return_fn=False, *args, **kwargs):
+        super(datasets.ImageFolder, self).__init__(*args, **kwargs)
+        self.return_fn = return_fn
+
+    def __getitem__(self, i):
+        img, label = super(ImageFolderWithName, self).__getitem__(i)
+        if not self.return_fn:
+            return img, label
+        else:
+            return img, label, self.imgs[i]
 
 class MetricData(torch.utils.data.Dataset):
     def __init__(self, data_root, anno_file, idx_file, return_fn=False):

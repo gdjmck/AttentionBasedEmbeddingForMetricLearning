@@ -203,7 +203,8 @@ class   DistanceWeightedSampling(nn.Module):
 
 if __name__ == '__main__':
     import numpy as np
-    model = MetricLearner()
+    from thop import profile
     input = torch.Tensor(np.zeros((1, 3, 224, 224)))
-    output = model(input)
-    print(output.detach().shape)
+    model = MetricLearner()
+    flops, params = profile(model, inputs=(input, ))
+    print(flops, params)

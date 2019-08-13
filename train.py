@@ -10,10 +10,11 @@ import cv2
 import torchvision
 import torchvision.transforms as transforms
 import torchnet
+from torchvision.utils.tensorboard import SummaryWriter
 from PIL import Image
 from sampler import BalancedBatchSampler
 from model import MetricLearner
-from dataset import MetricData, SourceSampler
+from dataset import MetricData, SourceSampler, ImageFolderWithName
 
 eps = 1e-8
 
@@ -44,8 +45,8 @@ def get_args():
     parser.add_argument('--in_size', type=int, default=128, help='input tensor shape to put into model')
     return parser.parse_args()
 
-def convert_dataset(folder, loader=lambda x: Image.open(x).convert('RGB')):
-    data = torchvision.datasets.ImageFolder(folder, transforms.Compose([
+def imagefolder(folder, loader=lambda x: Image.open(x).convert('RGB'), return_fn=False):
+    data = ImageFolderWithName(return_fn=return_fn, root=folder, transform=transforms.Compose([
                                         transforms.Resize(228),
                                         transforms.RandomCrop((224, 224)),
                                         transforms.RandomHorizontalFlip(),
@@ -57,10 +58,11 @@ def convert_dataset(folder, loader=lambda x: Image.open(x).convert('RGB')):
 
 args = get_args()
 mlog = torchnet.logger.MeterLogger(env='logger')
+writer = SummaryWriter()
 
 device = torch.device('cuda:{}'.format(args.gpu_ids[0])) if args.gpu_ids else torch.device('cpu')
 #data = MetricData(data_root=args.img_folder, anno_file=args.anno, idx_file=args.idx_file)
-data = convert_dataset(args.img_folder)
+data = imagefolder(args.img_folder)
 dataset = torch.utils.data.DataLoader(data, batch_sampler=BalancedBatchSampler(data, batch_size=args.batch, batch_k=args.batch_k, length=args.num_batch), num_workers=args.num_workers)
 model = MetricLearner(pretrain=args.pretrain, batch_k=args.batch_k)
 if args.resume:
@@ -141,7 +143,7 @@ if __name__ == '__main__':
         for i, batch in enumerate(dataset):
             x, y = batch
             x = x.to(device)
-            a_indices, anchors, positives, negatives, _ = model(x)
+            (a_indices, anchors, positives, negatives, _), atts = model(x, ret_att=True)
             # print(anchors.shape, positives.shape, negatives.shape)
             anchors, positives, negatives = torch.reshape(anchors, (-1, model.att_heads, int(512/model.att_heads))), torch.reshape(positives, (-1, model.att_heads, int(512/model.att_heads))), torch.reshape(negatives, (-1, model.att_heads, int(512/model.att_heads)))
 
