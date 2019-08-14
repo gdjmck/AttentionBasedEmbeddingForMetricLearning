@@ -79,7 +79,7 @@ else:
     best_performace = np.Inf
 model = model.to(device)
 att_params = model.att.parameters()
-optimizer = torch.optim.SGD([p in model.parameters() if p not in att_params], lr=args.lr, momentum=0.9)
+optimizer = torch.optim.SGD(filter(lambda p: p not in att_params, model.parameters()), lr=args.lr, momentum=0.9)
 optimizer_att = torch.optim.Adam(att_params, lr=args.lr, betas=(0.9, 0.999), weight_decay=5e-4)
 
 
