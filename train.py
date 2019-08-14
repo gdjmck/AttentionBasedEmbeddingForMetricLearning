@@ -190,7 +190,7 @@ if __name__ == '__main__':
                 print('Saved model.')
                 model.to(device)
     except KeyboardInterrupt:
-        torch.save('state_dict': model.cpu().state_dict(), 'epoch': epoch+1, 'loss': best_performace}, \
+        torch.save({'state_dict': model.cpu().state_dict(), 'epoch': epoch+1, 'loss': best_performace}, \
                             os.path.join(args.ckpt, 'latest_ckpt.pth'))
         print('Save temporary model to latest_ckpt.pth')
         exit(0)
