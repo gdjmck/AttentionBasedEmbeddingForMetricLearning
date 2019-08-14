@@ -10,7 +10,7 @@ import cv2
 import torchvision
 import torchvision.transforms as transforms
 import torchnet
-from torchvision.utils.tensorboard import SummaryWriter
+from tensorboardX import SummaryWriter
 from PIL import Image
 from sampler import BalancedBatchSampler
 from model import MetricLearner
@@ -145,6 +145,7 @@ if __name__ == '__main__':
             x = x.to(device)
             (a_indices, anchors, positives, negatives, _), atts = model(x, ret_att=True)
             # print(anchors.shape, positives.shape, negatives.shape)
+            writer.add_images('attention', atts)
             anchors, positives, negatives = torch.reshape(anchors, (-1, model.att_heads, int(512/model.att_heads))), torch.reshape(positives, (-1, model.att_heads, int(512/model.att_heads))), torch.reshape(negatives, (-1, model.att_heads, int(512/model.att_heads)))
 
             optimizer.zero_grad()
