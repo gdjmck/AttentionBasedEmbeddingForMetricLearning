@@ -17,6 +17,8 @@ from model import MetricLearner
 from dataset import MetricData, SourceSampler, ImageFolderWithName
 
 eps = 1e-8
+mlog = torchnet.logger.MeterLogger(env='logger')
+writer = SummaryWriter()
 
 def get_args():
     parser = argparse.ArgumentParser(description='Face Occlusion Regression')
@@ -57,8 +59,6 @@ def imagefolder(folder, loader=lambda x: Image.open(x).convert('RGB'), return_fn
     return data   
 
 args = get_args()
-mlog = torchnet.logger.MeterLogger(env='logger')
-writer = SummaryWriter()
 
 device = torch.device('cuda:{}'.format(args.gpu_ids[0])) if args.gpu_ids else torch.device('cpu')
 #data = MetricData(data_root=args.img_folder, anno_file=args.anno, idx_file=args.idx_file)
@@ -145,9 +145,7 @@ if __name__ == '__main__':
             x = x.to(device)
             out, atts = model(x, ret_att=True)
             a_indices, anchors, positives, negatives, _ = out
-            print(anchors.shape, positives.shape, negatives.shape, atts[0].shape)
-            for ai in range(len(atts)):
-                writer.add_images('attention %d'%ai, atts[ai][:, 0:1, ...])
+            # print(anchors.shape, positives.shape, negatives.shape, atts[0].shape)
             anchors, positives, negatives = torch.reshape(anchors, (-1, model.att_heads, int(512/model.att_heads))), torch.reshape(positives, (-1, model.att_heads, int(512/model.att_heads))), torch.reshape(negatives, (-1, model.att_heads, int(512/model.att_heads)))
 
             optimizer.zero_grad()
@@ -163,6 +161,11 @@ if __name__ == '__main__':
             if i % 100 == 0:
                 print('\tBatch %d\tloss div: %.4f (%.3f)\tloss homo: %.4f (%.3f)\tloss heter: %.4f (%.3f)'%\
                     (i, loss_div/(i+1), (loss_div+eps)/(loss_div+loss_heter+loss_homo+eps), loss_homo/(i+1), (loss_homo+eps)/(loss_div+loss_homo+loss_heter+eps), loss_heter/(i+1), (loss_heter+eps)/(loss_div+loss_heter+loss_homo+eps)))
+            if i % 200 == 0:
+                for ai in range(len(atts)):
+                    writer.add_images('attention %d'%ai, atts[ai][:, 0:1, ...])
+                for var_name, value in model.att.named_parameters():
+                    writer.add_histogram(var_name+'/grad', value.grad.data.cpu().numpy())
         loss_homo /= (i+1)
         loss_heter /= (i+1)
         loss_div /= (i+1)
