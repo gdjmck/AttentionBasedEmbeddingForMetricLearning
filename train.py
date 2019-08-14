@@ -147,7 +147,7 @@ if __name__ == '__main__':
             a_indices, anchors, positives, negatives, _ = out
             print(anchors.shape, positives.shape, negatives.shape, atts[0].shape)
             for ai in range(len(atts)):
-                writer.add_images('attention %d'%ai, atts[ai][:, 0, ...])
+                writer.add_images('attention %d'%ai, atts[ai][:, 0:1, ...])
             anchors, positives, negatives = torch.reshape(anchors, (-1, model.att_heads, int(512/model.att_heads))), torch.reshape(positives, (-1, model.att_heads, int(512/model.att_heads))), torch.reshape(negatives, (-1, model.att_heads, int(512/model.att_heads)))
 
             optimizer.zero_grad()
