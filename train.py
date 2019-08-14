@@ -143,9 +143,10 @@ if __name__ == '__main__':
         for i, batch in enumerate(dataset):
             x, y = batch
             x = x.to(device)
-            (a_indices, anchors, positives, negatives, _), atts = model(x, ret_att=True)
-            # print(anchors.shape, positives.shape, negatives.shape)
-            writer.add_images('attention', atts)
+            out, atts = model(x, ret_att=True)
+            a_indices, anchors, positives, negatives, _ = out
+            print(anchors.shape, positives.shape, negatives.shape, atts[0].shape)
+            writer.add_images('attention', atts[0])
             anchors, positives, negatives = torch.reshape(anchors, (-1, model.att_heads, int(512/model.att_heads))), torch.reshape(positives, (-1, model.att_heads, int(512/model.att_heads))), torch.reshape(negatives, (-1, model.att_heads, int(512/model.att_heads)))
 
             optimizer.zero_grad()

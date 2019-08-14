@@ -13,7 +13,7 @@ mean, std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
 
 class ImageFolderWithName(datasets.ImageFolder):
     def __init__(self, return_fn=False, *args, **kwargs):
-        super(datasets.ImageFolder, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.return_fn = return_fn
 
     def __getitem__(self, i):
