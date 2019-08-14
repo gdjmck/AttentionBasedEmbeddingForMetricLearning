@@ -102,7 +102,7 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         embedding = torch.cat([self.feat_global(atts[i]*sp).unsqueeze(1) for i in range(len(atts))], 1)
         embedding = torch.flatten(embedding, 1)
         if sampling:
-            return self.sampled(embedding)
+            return self.sampled(embedding) if not ret_att else (self.sampled(embedding), atts)
         else:
             return (embedding, atts) if ret_att else embedding
 
