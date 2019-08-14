@@ -14,7 +14,7 @@ from tensorboardX import SummaryWriter
 from PIL import Image
 from sampler import BalancedBatchSampler
 from model import MetricLearner
-from dataset import MetricData, SourceSampler, ImageFolderWithName
+from dataset import MetricData, SourceSampler, ImageFolderWithName, invTrans
 
 eps = 1e-8
 mlog = torchnet.logger.MeterLogger(env='logger')
@@ -78,7 +78,9 @@ else:
     start_epoch = 0
     best_performace = np.Inf
 model = model.to(device)
-optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
+att_params = model.att.parameters()
+optimizer = torch.optim.SGD([p in model.parameters() if p not in att_params], lr=args.lr, momentum=0.9)
+optimizer_att = torch.optim.Adam(att_params, lr=args.lr, betas=(0.9, 0.999), weight_decay=5e-4)
 
 
 if __name__ == '__main__':
@@ -136,47 +138,59 @@ if __name__ == '__main__':
             print(item['fn'], '\n', item['top_8'], '\n\n')
         sys.exit()
 
-    for epoch in range(start_epoch, args.epochs):
-        model.train()
+    try:
+        for epoch in range(start_epoch, args.epochs):
+            model.train()
 
-        loss_div, loss_homo, loss_heter = 0, 0, 0
-        for i, batch in enumerate(dataset):
-            x, y = batch
-            x = x.to(device)
-            out, atts = model(x, ret_att=True)
-            a_indices, anchors, positives, negatives, _ = out
-            # print(anchors.shape, positives.shape, negatives.shape, atts[0].shape)
-            anchors, positives, negatives = torch.reshape(anchors, (-1, model.att_heads, int(512/model.att_heads))), torch.reshape(positives, (-1, model.att_heads, int(512/model.att_heads))), torch.reshape(negatives, (-1, model.att_heads, int(512/model.att_heads)))
+            loss_div, loss_homo, loss_heter = 0, 0, 0
+            for i, batch in enumerate(dataset):
+                x, y = batch
+                x = x.to(device)
+                out, atts = model(x, ret_att=True)
+                a_indices, anchors, positives, negatives, _ = out
+                # print(anchors.shape, positives.shape, negatives.shape, atts[0].shape)
+                anchors, positives, negatives = torch.reshape(anchors, (-1, model.att_heads, int(512/model.att_heads))), torch.reshape(positives, (-1, model.att_heads, int(512/model.att_heads))), torch.reshape(negatives, (-1, model.att_heads, int(512/model.att_heads)))
 
-            optimizer.zero_grad()
-            l_div, l_homo, l_heter = criterion.criterion(anchors, positives, negatives)
-            l_div /= (model.att_heads - 1)
-            l = l_div + l_homo + l_heter
-            l.backward()
-            optimizer.step()
+                optimizer.zero_grad()
+                optimizer_att.zero_grad()
+                l_div, l_homo, l_heter = criterion.criterion(anchors, positives, negatives)
+                l_div /= (model.att_heads - 1)
+                l = l_div + 2*(l_homo + l_heter)
+                l.backward()
+                if i % 2 == 0:
+                    optimizer_att.step()
+                else:
+                    optimizer_att.step()
+                    optimizer.step()
 
-            loss_homo += l_homo.item()
-            loss_heter += l_heter.item()
-            loss_div += l_div.item()
-            if i % 100 == 0:
-                print('\tBatch %d\tloss div: %.4f (%.3f)\tloss homo: %.4f (%.3f)\tloss heter: %.4f (%.3f)'%\
-                    (i, loss_div/(i+1), (loss_div+eps)/(loss_div+loss_heter+loss_homo+eps), loss_homo/(i+1), (loss_homo+eps)/(loss_div+loss_homo+loss_heter+eps), loss_heter/(i+1), (loss_heter+eps)/(loss_div+loss_heter+loss_homo+eps)))
-            if i % 200 == 0:
-                for ai in range(len(atts)):
-                    writer.add_images('attention %d'%ai, atts[ai][:, 0:1, ...])
-                for var_name, value in model.att.named_parameters():
-                    writer.add_histogram(var_name+'/grad', value.grad.data.cpu().numpy())
-        loss_homo /= (i+1)
-        loss_heter /= (i+1)
-        loss_div /= (i+1)
-        print('Epoch %d batches %d\tdiv:%.4f\thomo:%.4f\theter:%.4f'%(epoch, i+1, loss_div, loss_homo, loss_heter))
-        # mlog.update_loss(loss_homo, 'homo')
-        # mlog.update_loss(loss_heter, 'heter')
-        # mlog.update_loss(loss_div, 'divergence')
-        if (loss_homo+loss_heter) < best_performace:
-            best_performace = loss_homo + loss_heter
-            torch.save({'state_dict': model.cpu().state_dict(), 'epoch': epoch+1, 'loss': best_performace}, \
-                        os.path.join(args.ckpt, '%d_ckpt.pth'%epoch))
-            shutil.copy(os.path.join(args.ckpt, '%d_ckpt.pth'%epoch), os.path.join(args.ckpt, 'best_performance.pth'))
-            print('Saved model.')
-            model.to(device)
+                loss_homo += l_homo.item()
+                loss_heter += l_heter.item()
+                loss_div += l_div.item()
+                if i % 100 == 0:
+                    print('\tBatch %d\tloss div: %.4f (%.3f)\tloss homo: %.4f (%.3f)\tloss heter: %.4f (%.3f)'%\
+                        (i, loss_div/(i+1), (loss_div+eps)/(loss_div+loss_heter+loss_homo+eps), loss_homo/(i+1), (loss_homo+eps)/(loss_div+loss_homo+loss_heter+eps), loss_heter/(i+1), (loss_heter+eps)/(loss_div+loss_heter+loss_homo+eps)))
+                if i % 200 == 0:
+                    writer.add_images('img', invTrans(x))
+                    for ai in range(len(atts)):
+                        writer.add_images('attention %d'%ai, atts[ai][:, 0:1, ...])
+                    for var_name, value in model.att.named_parameters():
+                        writer.add_histogram(var_name+'/grad', value.grad.data.cpu().numpy())
+            loss_homo /= (i+1)
+            loss_heter /= (i+1)
+            loss_div /= (i+1)
+            print('Epoch %d batches %d\tdiv:%.4f\thomo:%.4f\theter:%.4f'%(epoch, i+1, loss_div, loss_homo, loss_heter))
+            # mlog.update_loss(loss_homo, 'homo')
+            # mlog.update_loss(loss_heter, 'heter')
+            # mlog.update_loss(loss_div, 'divergence')
+            if (loss_homo+loss_heter) < best_performace:
+                best_performace = loss_homo + loss_heter
+                torch.save({'state_dict': model.cpu().state_dict(), 'epoch': epoch+1, 'loss': best_performace}, \
+                            os.path.join(args.ckpt, '%d_ckpt.pth'%epoch))
+                shutil.copy(os.path.join(args.ckpt, '%d_ckpt.pth'%epoch), os.path.join(args.ckpt, 'best_performance.pth'))
+                print('Saved model.')
+                model.to(device)
+    except KeyboardInterrupt:
+        torch.save('state_dict': model.cpu().state_dict(), 'epoch': epoch+1, 'loss': best_performace}, \
+                            os.path.join(args.ckpt, 'latest_ckpt.pth'))
+        print('Save temporary model to latest_ckpt.pth')
+        exit(0)
