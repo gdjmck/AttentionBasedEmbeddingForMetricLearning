@@ -28,7 +28,7 @@ class BalancedBatchSampler(Sampler):
         assert self.min_samples >= self.batch_k
     
         self.keys = list(self.dataset.keys())
-        print('BalancedBatchSampler len:', self.__len__())
+        print('BalancedBatchSampler len:', self.__len__(), 'self.keys len=', len(self.keys))
         #self.currentkey = 0
 
     def __iter__(self):
@@ -50,7 +50,7 @@ class BalancedBatchSampler(Sampler):
         dataset_type = type(dataset)
         if dataset_type is torchvision.datasets.MNIST:
             return dataset.train_labels[idx].item()
-        elif dataset_type is torchvision.datasets.ImageFolder:
+        elif isinstance(dataset, torchvision.datasets.ImageFolder):
             return dataset.imgs[idx][1]
         else:
             raise NotImplementedError

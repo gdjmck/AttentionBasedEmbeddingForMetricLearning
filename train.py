@@ -79,7 +79,7 @@ else:
     best_performace = np.Inf
 model = model.to(device)
 att_params = list(model.att.parameters())
-optimizer = torch.optim.SGD([p for p in model.parameters() if p not in att_params], lr=args.lr, momentum=0.9)
+optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
 optimizer_att = torch.optim.Adam(att_params, lr=args.lr, betas=(0.9, 0.999), weight_decay=5e-4)
 
 
@@ -170,7 +170,9 @@ if __name__ == '__main__':
                     print('\tBatch %d\tloss div: %.4f (%.3f)\tloss homo: %.4f (%.3f)\tloss heter: %.4f (%.3f)'%\
                         (i, loss_div/(i+1), (loss_div+eps)/(loss_div+loss_heter+loss_homo+eps), loss_homo/(i+1), (loss_homo+eps)/(loss_div+loss_homo+loss_heter+eps), loss_heter/(i+1), (loss_heter+eps)/(loss_div+loss_heter+loss_homo+eps)))
                 if i % 200 == 0:
-                    writer.add_images('img', invTrans(x))
+                    img_inv = torch.cat([invTrans(x[i]).unsqueeze(0) for i in range(x.shape[0])], 0)
+                    assert img_inv.shape == x.shape
+                    writer.add_images('img', img_inv)
                     for ai in range(len(atts)):
                         writer.add_images('attention %d'%ai, atts[ai][:, 0:1, ...])
                     for var_name, value in model.att.named_parameters():
