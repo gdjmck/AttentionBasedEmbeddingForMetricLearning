@@ -20,9 +20,7 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         assert 512 % att_heads == 0
         self.att_heads = att_heads
         self.out_dim = int(512 / self.att_heads)
-        self.att = nn.ModuleList([nn.Sequential(nn.Conv2d(in_channels=832, out_channels=480, kernel_size=1), nn.Sigmoid()) for i in range(att_heads)])
-        for layer in self.att:
-            nn.init.xavier_uniform_(layer[0].weight)
+        self.att = nn.ModuleList([nn.Conv2d(in_channels=832, out_channels=480, kernel_size=1) for i in range(att_heads)])
         self.last_fc = nn.Linear(1024, self.out_dim)
 
         self.sampled = DistanceWeightedSampling(batch_k=batch_k, normalize=normalize)
@@ -99,7 +97,7 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         sp = self.feat_spatial(x)
         att_input = self.att_prep(sp)
         atts = [self.att[i](att_input) for i in range(len(self.att))]
-        embedding = torch.cat([self.feat_global(atts[i]*sp).unsqueeze(1) for i in range(len(atts))], 1)
+        embedding = torch.cat([self.feat_global(torch.sigmoid(atts[i])*sp).unsqueeze(1) for i in range(len(atts))], 1)
         embedding = torch.flatten(embedding, 1)
         if sampling:
             return self.sampled(embedding) if not ret_att else (self.sampled(embedding), atts)
