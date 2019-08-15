@@ -115,6 +115,17 @@ class SourceSampler(torch.utils.data.Sampler):
 
 
 if __name__ == '__main__':
+    from sampler import BalancedBatchSampler
+    data = ImageFolderWithName(return_fn=False, root='/home/chk/cars_stanford/cars_train_labelled/train', transform=transforms.Compose([
+                                        transforms.Resize(228),
+                                        transforms.RandomCrop((224, 224)),
+                                        transforms.RandomHorizontalFlip(),
+                                        transforms.ToTensor(),
+                                        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                        std=[0.229, 0.224, 0.225])]),
+                                        loader=lambda x: Image.open(x).convert('RGB'))
+    dataset = torch.utils.data.DataLoader(data, batch_sampler=BalancedBatchSampler(data, batch_size=32, batch_k=4, length=2000), num_workers=4)
+    '''
     data = MetricData(data_root='/home/chk/cars_stanford/cars_train', \
                                     anno_file='/home/chk/cars_stanford/devkit/cars_train_annos.mat', \
                                     idx_file='/home/chk/cars_stanford/devkit/cars_train_annos_idx.pkl', \
@@ -122,12 +133,13 @@ if __name__ == '__main__':
     sampler = SourceSampler(data)
     print('Batch sampler len:', len(sampler))
     dataset = torch.utils.data.DataLoader(data, batch_sampler=sampler)
+    '''
 
     from model import MetricLearner
-    model = MetricLearner()
+    #model = MetricLearner()
     for i, (td, label) in enumerate(dataset):
         # if i % 100 == 0:
         print(i, '\tBatch shape:\t', td.shape, '\t', label)
-        break
+        #break
         #pred = model(td)
         #print(pred.shape)
