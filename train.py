@@ -83,7 +83,7 @@ att_params = [t[0] for t in model.att.named_parameters()]
 optimizer = torch.optim.SGD([p for n, p in model.named_parameters() if n not in att_params], lr=args.lr, momentum=0.9)
 optimizer_att = torch.optim.Adam(model.att.parameters(), lr=args.lr, betas=(0.9, 0.999), weight_decay=5e-4)
 
-
+step = 0
 if __name__ == '__main__':
     # TEST DATASET
     if args.test and args.resume:
@@ -173,11 +173,12 @@ if __name__ == '__main__':
                 if i % 200 == 0:
                     img_inv = torch.cat([invTrans(x[i]).unsqueeze(0) for i in range(x.shape[0])], 0)
                     assert img_inv.shape == x.shape
-                    writer.add_images('img', img_inv)
+                    writer.add_images('img', img_inv, global_step=step)
                     for ai in range(len(atts)):
-                        writer.add_images('attention %d'%ai, atts[ai][:, 0:1, ...])
+                        writer.add_images('attention %d'%ai, atts[ai][:, 0:1, ...], global_step=step)
                     for var_name, value in model.att.named_parameters():
-                        writer.add_histogram(var_name+'/grad', value.grad.data.cpu().numpy())
+                        writer.add_histogram(var_name+'/grad', value.grad.data.cpu().numpy(), global_step=step)
+                    step += 1
             loss_homo /= (i+1)
             loss_heter /= (i+1)
             loss_div /= (i+1)
