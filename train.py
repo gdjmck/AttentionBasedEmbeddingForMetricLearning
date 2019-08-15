@@ -79,7 +79,7 @@ else:
     start_epoch = 0
     best_performace = np.Inf
 model = model.to(device)
-att_params = [t[0] for t in model.att.named_parameters]
+att_params = [t[0] for t in model.att.named_parameters()]
 optimizer = torch.optim.SGD([p for n, p in model.named_parameters() if n not in att_params], lr=args.lr, momentum=0.9)
 optimizer_att = torch.optim.Adam(model.att.parameters(), lr=args.lr, betas=(0.9, 0.999), weight_decay=5e-4)
 
