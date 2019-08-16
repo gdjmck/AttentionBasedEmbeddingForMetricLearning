@@ -101,7 +101,7 @@ if __name__ == '__main__':
                     print('number of images in batch:', len(imgs), imgs[0].shape, imgs[0].min(), imgs[0].max())
                     tmp_att = atts[0].cpu().numpy().mean(axis=1)
                     print('number of attentions in batch:', len(atts), atts[0].shape, atts[0].min(), atts[0].max(), tmp_att.shape, tmp_att.min(), tmp_att.max())
-                    for j in range(4):
+                    for j in range(args.att_heads):
                         vis.heatmap(cv2.resize(atts[j].cpu().numpy()[0, ...].mean(axis=0), (224, 224)), \
                             win=j+1000, opts=dict(title='Att_%d'%j))
                     '''
