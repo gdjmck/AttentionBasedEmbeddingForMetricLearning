@@ -96,7 +96,7 @@ if __name__ == '__main__':
             for i, batch in enumerate(dataset_test):
                 batch[0] = batch[0].to(device)
                 if i < 4:
-                    query, atts = model(batch[0], ret_att=True)
+                    query, atts = model(batch[0], ret_att=True, sampling=False)
                     imgs = MetricData.tensor2img(batch[0])
                     print('number of images in batch:', len(imgs), imgs[0].shape, imgs[0].min(), imgs[0].max())
                     tmp_att = atts[0].cpu().numpy().mean(axis=1)
@@ -115,7 +115,7 @@ if __name__ == '__main__':
                         win=i+100, opts=dict(title='Query_%d'%i))    
                     print('Added query.')                
                 else:
-                    embedding = model(batch[0]).cpu().numpy()
+                    embedding = model(batch[0], sampling=False).cpu().numpy()
                     for j in range(4):
                         dist = np.sum((top_4[j]['query'] - embedding)**2)
                         if len(top_4[j]['top_8']) < 8 or (len(top_4[j]['top_8']) >= 8 and dist < top_4[j]['top_8'][-1]['distance']):
