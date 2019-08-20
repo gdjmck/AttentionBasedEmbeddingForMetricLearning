@@ -38,12 +38,12 @@ def get_args():
     # test
     parser.add_argument('--test', action='store_true', help='switch on test mode')
     # annotation
-    parser.add_argument('--anno', type=str, required=True, help='location of annotation file')
-    parser.add_argument('--anno_test', type=str, required=True, help='location of test data annotation file')
+    #parser.add_argument('--anno', type=str, required=True, help='location of annotation file')
+    #parser.add_argument('--anno_test', type=str, required=True, help='location of test data annotation file')
     parser.add_argument('--img_folder', type=str, required=True, help='folder of image files in annotation file')
-    parser.add_argument('--img_folder_test', type=str, default='', help='folder of test image files in annotaion file')
-    parser.add_argument('--idx_file', type=str, required=True, help='idx file for every label class')
-    parser.add_argument('--idx_file_test', type=str, default='idx_file.pkl', help='idx file for test data, should be .pkl format')
+    #parser.add_argument('--img_folder_test', type=str, default='', help='folder of test image files in annotaion file')
+    #parser.add_argument('--idx_file', type=str, required=True, help='idx file for every label class')
+    #parser.add_argument('--idx_file_test', type=str, default='idx_file.pkl', help='idx file for test data, should be .pkl format')
     # model hyperparameter
     parser.add_argument('--in_size', type=int, default=128, help='input tensor shape to put into model')
     return parser.parse_args()
