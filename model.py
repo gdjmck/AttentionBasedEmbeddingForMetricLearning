@@ -99,7 +99,7 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         att_input = self.att_prep(sp)
         atts = [self.att[i](att_input) for i in range(len(self.att))]
         # Normalize attention map
-        N, D, H, W = att[0].size()
+        N, D, H, W = atts[0].size()
         for i in range(len(atts)):
             att = atts[i].view(N*self.att_depth, -1) # (N*depth, H*W)
             att_max, _ = att.max(dim=1, keepdim=True) # (N*depth, 1)
