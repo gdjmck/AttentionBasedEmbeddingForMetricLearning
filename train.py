@@ -64,7 +64,8 @@ args = get_args()
 device = torch.device('cuda:{}'.format(args.gpu_ids[0])) if args.gpu_ids else torch.device('cpu')
 #data = MetricData(data_root=args.img_folder, anno_file=args.anno, idx_file=args.idx_file)
 data = imagefolder(args.img_folder)
-dataset = torch.utils.data.DataLoader(data, batch_sampler=BalancedBatchSampler(data, batch_size=args.batch, batch_k=args.batch_k, length=args.num_batch), num_workers=args.num_workers)
+dataset = torch.utils.data.DataLoader(data, batch_sampler=BalancedBatchSampler(data, batch_size=args.batch, batch_k=args.batch_k, length=args.num_batch), \
+                                        num_workers=args.num_workers, pin_memory=True)
 model = MetricLearner(pretrain=args.pretrain, batch_k=args.batch_k, att_heads=args.att_heads)
 if not os.path.exists(args.ckpt):
     os.makedirs(args.ckpt)
@@ -149,7 +150,7 @@ if __name__ == '__main__':
             loss_div, loss_homo, loss_heter = 0, 0, 0
             for i, batch in enumerate(dataset):
                 x, y = batch
-                x = x.to(device)
+                x = x.to(device, non_blocking=True)
                 out, atts = model(x, ret_att=True)
                 a_indices, anchors, positives, negatives, _ = out
                 # print(anchors.shape, positives.shape, negatives.shape, atts[0].shape)
