@@ -83,9 +83,7 @@ else:
     start_epoch = 0
     best_performace = np.Inf
 model = model.to(device)
-att_params = [t[0] for t in model.att.named_parameters()]
-optimizer = torch.optim.SGD([p for n, p in model.named_parameters() if n not in att_params], lr=args.lr, momentum=0.9)
-optimizer_att = torch.optim.Adam(model.att.parameters(), lr=args.lr, betas=(0.9, 0.999), weight_decay=5e-4)
+optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
 
 step = 0
 if __name__ == '__main__':
@@ -157,16 +155,11 @@ if __name__ == '__main__':
                 anchors, positives, negatives = torch.reshape(anchors, (-1, model.att_heads, int(512/model.att_heads))), torch.reshape(positives, (-1, model.att_heads, int(512/model.att_heads))), torch.reshape(negatives, (-1, model.att_heads, int(512/model.att_heads)))
 
                 optimizer.zero_grad()
-                optimizer_att.zero_grad()
                 l_div, l_homo, l_heter = criterion.criterion(anchors, positives, negatives)
                 l_div /= (model.att_heads - 1)
                 l = l_div + 2*(l_homo + l_heter)
                 l.backward()
-                if i % 2 == 0:
-                    optimizer_att.step()
-                else:
-                    optimizer_att.step()
-                    optimizer.step()
+                optimizer.step()
 
                 loss_homo += l_homo.item()
                 loss_heter += l_heter.item()
