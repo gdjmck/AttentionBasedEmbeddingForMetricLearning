@@ -97,18 +97,16 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         # N x 3 x 224 x 224
         sp = self.feat_spatial(x)
         att_input = self.att_prep(sp)
-        atts = [self.att[i](att_input) for i in range(self.att_heads)]
+        atts = torch.cat([self.att[i](att_input).unsqueeze(1) for i in range(self.att_heads)], dim=1) # (N, att_heads, depth, H, W)
         # Normalize attention map
-        N, D, H, W = atts[0].size()
-        for i in range(self.att_heads):
-            att = atts[i].view(N*self.att_depth, -1) # (N*depth, H*W)
-            att_max, _ = att.max(dim=1, keepdim=True) # (N*depth, 1)
-            att_min, _ = att.min(dim=1, keepdim=True) # (N*depth, 1)
-            att = (att - att_min) / (att_max - att_min) # (N*depth, H*W)
-            att = att.view(N, self.att_depth, H, W)
-            atts[i] = att
+        N, _, D, H, W = atts.size()
+        atts = atts.view(-1, H*W) # (N*att_heads*depth, H*W)
+        att_max, _ = atts.max(dim=1, keepdim=True) # (N*att_heads*depth, 1)
+        att_min, _ = atts.min(dim=1, keepdim=True) # (N*att_heads*depth, 1)
+        atts = (atts - att_min) / (att_max - att_min) # (N*depth, H*W)
+        atts = att.view(N, -1, D, H, W)
 
-        embedding = torch.cat([self.feat_global(atts[i]*sp).unsqueeze(1) for i in range(len(atts))], 1)
+        embedding = torch.cat([self.feat_global(atts[:, i, ...]*sp).unsqueeze(1) for i in range(len(atts))], 1)
         embedding = torch.flatten(embedding, 1)
         if sampling:
             return self.sampled(embedding) if not ret_att else (self.sampled(embedding), atts)

@@ -151,13 +151,12 @@ if __name__ == '__main__':
                 x = x.to(device, non_blocking=True)
                 out, atts = model(x, ret_att=True)
                 a_indices, anchors, positives, negatives, _ = out
-                # print(anchors.shape, positives.shape, negatives.shape, atts[0].shape)
+                # print(anchors.shape, positives.shape, negatives.shape, atts.shape)
                 anchors, positives, negatives = torch.reshape(anchors, (-1, model.att_heads, int(512/model.att_heads))), torch.reshape(positives, (-1, model.att_heads, int(512/model.att_heads))), torch.reshape(negatives, (-1, model.att_heads, int(512/model.att_heads)))
 
                 optimizer.zero_grad()
                 l_div, l_homo, l_heter = criterion.criterion(anchors, positives, negatives)
-                l_div /= (model.att_heads - 1)
-                l = l_div + 2*(l_homo + l_heter)
+                l = l_div + l_homo + l_heter
                 l.backward()
                 optimizer.step()
 
@@ -171,8 +170,8 @@ if __name__ == '__main__':
                     img_inv = torch.cat([invTrans(x[i]).unsqueeze(0) for i in range(x.shape[0])], 0)
                     assert img_inv.shape == x.shape
                     writer.add_images('img', img_inv, global_step=step)
-                    for ai in range(len(atts)):
-                        writer.add_images('attention %d'%ai, atts[ai][:, 0:1, ...], global_step=step)
+                    for ai in range(model.att_heads):
+                        writer.add_images('attention %d'%ai, atts[:, ai, 0:1, ...], global_step=step)
                     for var_name, value in model.att.named_parameters():
                         writer.add_histogram(var_name+'/grad', value.grad.data.cpu().numpy(), global_step=step)
                     step += 1
