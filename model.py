@@ -77,6 +77,7 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         # N x 1024
         x = self.last_fc(x)
         # N x (512/M)
+        x = F.normalize(x)
         return x
 
     def att_prep(self, x):
@@ -109,7 +110,6 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         embedding = torch.cat([self.feat_global(atts[:, i, ...]*sp).unsqueeze(1) for i in range(self.att_heads)], 1)
         #print('embedding in forward:', embedding.shape)
         embedding = torch.flatten(embedding, 1)
-        embedding = F.normalize(embedding)
         if sampling:
             return self.sampled(embedding) if not ret_att else (self.sampled(embedding), atts)
         else:
@@ -162,6 +162,8 @@ class   DistanceWeightedSampling(nn.Module):
     def forward(self, x):
         k = self.batch_k
         n, d = x.shape
+        x_in = x
+        x = F.normalize(x)
         #print('Raw x:', x[0, :])
         distance = get_distance(x) # n x n
         try:
@@ -209,7 +211,7 @@ class   DistanceWeightedSampling(nn.Module):
                     a_indices.append(i)
                     p_indices.append(j)
 
-        return  a_indices, x[a_indices], x[p_indices], x[n_indices], x
+        return  a_indices, x_in[a_indices], x_in[p_indices], x_in[n_indices], x_in
 
 
 
