@@ -38,7 +38,7 @@ class BalancedBatchSampler(Sampler):
             classes = torch.multinomial(self.class_probs, int(self.batch_size/self.batch_k))
             for cls in classes:
                 cls_idxs = self.dataset[self.keys[cls]]
-                for k in torch.multinomial(torch.Tensor([1/len(cls_idxs)]*len(cls_idxs), self.batch_k):
+                for k in torch.multinomial(torch.Tensor([1/len(cls_idxs)]*len(cls_idxs)), self.batch_k):
                     batch.append(cls_idxs[k])
             yield batch
 
