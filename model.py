@@ -104,9 +104,9 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         att_max, _ = atts.max(dim=1, keepdim=True) # (N*att_heads*depth, 1)
         att_min, _ = atts.min(dim=1, keepdim=True) # (N*att_heads*depth, 1)
         atts = (atts - att_min) / (att_max - att_min) # (N*depth, H*W)
-        atts = att.view(N, -1, D, H, W)
+        atts = atts.view(N, -1, D, H, W)
 
-        embedding = torch.cat([self.feat_global(atts[:, i, ...]*sp).unsqueeze(1) for i in range(len(atts))], 1)
+        embedding = torch.cat([self.feat_global(atts[:, i, ...]*sp).unsqueeze(1) for i in range(self.att_heads)], 1)
         embedding = torch.flatten(embedding, 1)
         if sampling:
             return self.sampled(embedding) if not ret_att else (self.sampled(embedding), atts)
