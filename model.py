@@ -96,7 +96,9 @@ class MetricLearner(GoogLeNet.GoogLeNet):
     def forward(self, x, ret_att=False, sampling=True):
         # N x 3 x 224 x 224
         sp = self.feat_spatial(x)
-        att_input = self.att_prep(sp)
+        with torch.no_grad():
+            att_input = self.att_prep(sp)
+            print('\tatt_input.requires_grad:', att_input.requires_grad)
         atts = torch.cat([self.att[i](att_input).unsqueeze(1) for i in range(self.att_heads)], dim=1) # (N, att_heads, depth, H, W)
         # Normalize attention map
         N, _, D, H, W = atts.size()
@@ -164,7 +166,7 @@ class   DistanceWeightedSampling(nn.Module):
             assert (distance != distance).any() == 0 # 因为n x d 跟 d x n算距离时乘出来的结果有负数导致sqrt操作后得到nan
         except AssertionError:
             print('Got an nan', x)
-        distance = distance.clamp(min=self.cutoff)
+        distance = distance.clamp(min=self.cutoff) # 将inner product > 0.875 的压缩到0.875，即不让两个vector太过像
         log_weights = ((2.0 - float(d)) * distance.log() - (float(d-3)/2)*torch.log(torch.clamp(1.0 - 0.25*(distance*distance), min=1e-8)))
 
         if self.normalize:
