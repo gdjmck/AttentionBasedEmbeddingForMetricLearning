@@ -77,6 +77,7 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         # N x 1024
         x = self.last_fc(x)
         # N x (512/M)
+        x = F.normalize(x)
         return x
 
     def att_prep(self, x):
@@ -98,7 +99,6 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         sp = self.feat_spatial(x)
         with torch.no_grad():
             att_input = self.att_prep(sp)
-            print('\tatt_input.requires_grad:', att_input.requires_grad)
         atts = torch.cat([self.att[i](att_input).unsqueeze(1) for i in range(self.att_heads)], dim=1) # (N, att_heads, depth, H, W)
         # Normalize attention map
         N, _, D, H, W = atts.size()
@@ -109,6 +109,8 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         atts = att.view(N, -1, D, H, W)
 
         embedding = torch.cat([self.feat_global(atts[:, i, ...]*sp).unsqueeze(1) for i in range(len(atts))], 1)
+        print('\tRaw Embedding:', embedding.shape)
+        # (N, att_heads, 512/att_heads)  -->  (N, 512)
         embedding = torch.flatten(embedding, 1)
         if sampling:
             return self.sampled(embedding) if not ret_att else (self.sampled(embedding), atts)
