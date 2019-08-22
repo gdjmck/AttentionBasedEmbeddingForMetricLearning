@@ -13,6 +13,7 @@ def L_divergence(feats):
     for i in range(n):
         for j in range(i+1, n):
             loss += torch.clamp(1-torch.sum((feats[i, ...] - feats[j, ...]).pow(2)), min=0)
+    loss = 2*loss / (n-1)
     return loss
 
 def loss_func(tensor):
@@ -33,9 +34,8 @@ def criterion(anchors, positives, negatives):
         loss_homo = L_metric(anchors, positives)
         loss_heter = L_metric(anchors, negatives, False)
         loss_div = 0
-        print('\tAnchor:', anchors.shape)
         for i in range(anchors.shape[0]):
-                loss_div += L_divergence(anchors[i, ...]) + L_divergence(positives[i, ...]) + L_divergence(negatives[i, ...])
+                loss_div += (L_divergence(anchors[i, ...]) + L_divergence(positives[i, ...]) + L_divergence(negatives[i, ...])) / 3
         return loss_div, loss_homo, loss_heter
         
 def cluster_centroid_loss(cluster_a, cluster_b, margin=1):
