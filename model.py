@@ -77,7 +77,6 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         # N x 1024
         x = self.last_fc(x)
         # N x (512/M)
-        x = F.normalize(x)
         return x
 
     def att_prep(self, x):
@@ -97,7 +96,6 @@ class MetricLearner(GoogLeNet.GoogLeNet):
     def forward(self, x, ret_att=False, sampling=True):
         # N x 3 x 224 x 224
         sp = self.feat_spatial(x)
-        with torch.no_grad():
             att_input = self.att_prep(sp)
         atts = torch.cat([self.att[i](att_input).unsqueeze(1) for i in range(self.att_heads)], dim=1) # (N, att_heads, depth, H, W)
         # Normalize attention map
@@ -197,10 +195,10 @@ class   DistanceWeightedSampling(nn.Module):
             block_idx = i // k
 
             if weights_sum[i] != 0:
-                n_indices +=  np.random.choice(n, k-1, p=np_weights[i]).tolist()
+                n_indices +=  np.random.choice(n, (block_idx+1)*k-i-1, p=np_weights[i]).tolist()
             else:
                 n_indices +=  np.random.choice(n, k-1, p=mask_uniform_probs[i]).tolist()
-            for j in range(block_idx * k, (block_idx + 1)*k):
+            for j in range(i+1, (block_idx + 1)*k):
                 if j != i:
                     a_indices.append(i)
                     p_indices.append(j)
