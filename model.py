@@ -96,7 +96,7 @@ class MetricLearner(GoogLeNet.GoogLeNet):
     def forward(self, x, ret_att=False, sampling=True):
         # N x 3 x 224 x 224
         sp = self.feat_spatial(x)
-            att_input = self.att_prep(sp)
+        att_input = self.att_prep(sp)
         atts = torch.cat([self.att[i](att_input).unsqueeze(1) for i in range(self.att_heads)], dim=1) # (N, att_heads, depth, H, W)
         # Normalize attention map
         N, _, D, H, W = atts.size()
@@ -107,7 +107,9 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         atts = atts.view(N, -1, D, H, W)
 
         embedding = torch.cat([self.feat_global(atts[:, i, ...]*sp).unsqueeze(1) for i in range(self.att_heads)], 1)
+        #print('embedding in forward:', embedding.shape)
         embedding = torch.flatten(embedding, 1)
+        embedding = F.normalize(embedding)
         if sampling:
             return self.sampled(embedding) if not ret_att else (self.sampled(embedding), atts)
         else:
@@ -123,6 +125,7 @@ def get_distance(x):
     _x = x.detach()
     sim = torch.matmul(_x, _x.t())
     sim = torch.clamp(sim, max=1.0)
+    #print('\n\n', np.count_nonzero(sim.cpu().numpy() > 0.9) / (sim.shape[0] * sim.shape[1]), sim.shape)
     dist = 2 - 2*sim
     dist += torch.eye(dist.shape[0]).to(dist.device)   # maybe dist += torch.eye(dist.shape[0]).to(dist.device)*1e-8
     dist = dist.sqrt()
@@ -159,11 +162,13 @@ class   DistanceWeightedSampling(nn.Module):
     def forward(self, x):
         k = self.batch_k
         n, d = x.shape
+        #print('Raw x:', x[0, :])
         distance = get_distance(x) # n x n
         try:
             assert (distance != distance).any() == 0 # 因为n x d 跟 d x n算距离时乘出来的结果有负数导致sqrt操作后得到nan
         except AssertionError:
             print('Got an nan', x)
+        #print('Raw distance:', distance[0, ...])
         distance = distance.clamp(min=self.cutoff) # 将inner product > 0.875 的压缩到0.875，即不让两个vector太过像
         log_weights = ((2.0 - float(d)) * distance.log() - (float(d-3)/2)*torch.log(torch.clamp(1.0 - 0.25*(distance*distance), min=1e-8)))
 
@@ -184,6 +189,7 @@ class   DistanceWeightedSampling(nn.Module):
         weights = weights*mask*((distance < self.nonzero_loss_cutoff).float()) + 1e-8
         weights_sum = torch.sum(weights, dim=1, keepdim=True)
         weights = weights / weights_sum
+        #print('\t1st line of w:', weights[0, ...])
 
         a_indices = []
         p_indices = []
