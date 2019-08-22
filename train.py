@@ -89,7 +89,7 @@ step = 0
 if __name__ == '__main__':
     # TEST DATASET
     if args.test and args.resume:
-        dataset_test = torch.utils.data.DataLoader(MetricData(args.img_folder_test, args.anno_test, args.idx_file_test, return_fn=True), \
+        dataset_test = torch.utils.data.DataLoader(ImageFolderWithName(args.img_folder_test, return_fn=True), \
                             batch_size=1, shuffle=True, drop_last=False, num_workers=max(1, int(args.num_workers/2)))
         vis = visdom.Visdom()
         model.eval()
@@ -97,6 +97,7 @@ if __name__ == '__main__':
         with torch.no_grad():
             for i, batch in enumerate(dataset_test):
                 batch[0] = batch[0].to(device)
+                print('\tfns:', batch[1])
                 if i < 4:
                     query, atts = model(batch[0], ret_att=True, sampling=False)
                     imgs = MetricData.tensor2img(batch[0])
