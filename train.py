@@ -7,6 +7,7 @@ import numpy as np
 import visdom
 import criterion
 import cv2
+import util
 import torchvision
 import torchvision.transforms as transforms
 import torchnet
@@ -170,6 +171,7 @@ if __name__ == '__main__':
                     img_inv = torch.cat([invTrans(x[i]).unsqueeze(0) for i in range(x.shape[0])], 0)
                     assert img_inv.shape == x.shape
                     writer.add_images('img', img_inv, global_step=step)
+                    writer.add_figure('grad_flow', util.plot_grad_flow_v2(model.named_parameters()), global_step=step)
                     for ai in range(model.att_heads):
                         writer.add_images('attention %d'%ai, atts[:, ai, 0:1, ...], global_step=step)
                     for var_name, value in model.att.named_parameters():
