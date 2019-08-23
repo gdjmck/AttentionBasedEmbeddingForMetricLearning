@@ -35,10 +35,12 @@ def plot_grad_flow_v2(named_parameters):
             if p.grad is None:
                 #print('no grad:', n)
                 continue
+            n = n.replace('.weight', '').replace('inception', '').replace('branch', 'B')
             layers.append(n)
             ave_grads.append(p.grad.abs().mean())
             max_grads.append(p.grad.abs().max())
-    fig = plt.figure(1)
+    #print('layers:', layers)
+    fig = plt.figure(1, figsize=(20, 5))
     plt.bar(np.arange(len(max_grads)), max_grads, alpha=0.1, lw=1, color="c")
     plt.bar(np.arange(len(max_grads)), ave_grads, alpha=0.1, lw=1, color="b")
     plt.hlines(0, 0, len(ave_grads)+1, lw=2, color="k" )
