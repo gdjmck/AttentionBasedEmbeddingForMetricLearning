@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 
 def plot_grad_flow(named_parameters):
     ave_grads = []
@@ -31,6 +32,9 @@ def plot_grad_flow_v2(named_parameters):
     layers = []
     for n, p in named_parameters:
         if(p.requires_grad) and ("bias" not in n):
+            if p.grad is None:
+                #print('no grad:', n)
+                continue
             layers.append(n)
             ave_grads.append(p.grad.abs().mean())
             max_grads.append(p.grad.abs().max())
