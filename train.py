@@ -168,15 +168,14 @@ if __name__ == '__main__':
                     print('\tBatch %d\tloss div: %.4f (%.3f)\tloss homo: %.4f (%.3f)\tloss heter: %.4f (%.3f)'%\
                         (i, loss_div/(i+1), (loss_div+eps)/(loss_div+loss_heter+loss_homo+eps), loss_homo/(i+1), (loss_homo+eps)/(loss_div+loss_homo+loss_heter+eps), loss_heter/(i+1), (loss_heter+eps)/(loss_div+loss_heter+loss_homo+eps)))
                 if i % 1000 == 0:
-                    writer.add_figure('grad_flow', util.plot_grad_flow_v2(model.named_parameters()), global_step=step)
+                    writer.add_figure('grad_flow', util.plot_grad_flow_v2(model.named_parameters()), global_step=step//5)
                 if i % 200 == 0:
                     img_inv = torch.cat([invTrans(x[i]).unsqueeze(0) for i in range(x.shape[0])], 0)
                     assert img_inv.shape == x.shape
                     writer.add_images('img', img_inv, global_step=step)
                     for ai in range(model.att_heads):
+                        writer.add_images('avg_attention %d'%ai, atts[:, ai, ...].mean(dim=1, keepdim=True))
                         writer.add_images('attention %d'%ai, atts[:, ai, 0:1, ...], global_step=step)
-                    for var_name, value in model.att.named_parameters():
-                        writer.add_histogram(var_name+'/grad', value.grad.data.cpu().numpy(), global_step=step)
                     step += 1
             loss_homo /= (i+1)
             loss_heter /= (i+1)
