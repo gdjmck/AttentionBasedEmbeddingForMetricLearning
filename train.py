@@ -42,7 +42,7 @@ def get_args():
     #parser.add_argument('--anno', type=str, required=True, help='location of annotation file')
     #parser.add_argument('--anno_test', type=str, required=True, help='location of test data annotation file')
     parser.add_argument('--img_folder', type=str, required=True, help='folder of image files in annotation file')
-    #parser.add_argument('--img_folder_test', type=str, default='', help='folder of test image files in annotaion file')
+    parser.add_argument('--img_folder_test', type=str, default='', help='folder of test image files in annotaion file')
     #parser.add_argument('--idx_file', type=str, required=True, help='idx file for every label class')
     #parser.add_argument('--idx_file_test', type=str, default='idx_file.pkl', help='idx file for test data, should be .pkl format')
     # model hyperparameter
@@ -90,7 +90,7 @@ step = 0
 if __name__ == '__main__':
     # TEST DATASET
     if args.test and args.resume:
-        dataset_test = torch.utils.data.DataLoader(MetricData(args.img_folder_test, args.anno_test, args.idx_file_test, return_fn=True), \
+                dataset_test = torch.utils.data.DataLoader(imagefolder(return_fn=True, folder=args.img_folder_test), \
                             batch_size=1, shuffle=True, drop_last=False, num_workers=max(1, int(args.num_workers/2)))
         vis = visdom.Visdom()
         model.eval()
@@ -102,18 +102,18 @@ if __name__ == '__main__':
                     query, atts = model(batch[0], ret_att=True, sampling=False)
                     imgs = MetricData.tensor2img(batch[0])
                     print('number of images in batch:', len(imgs), imgs[0].shape, imgs[0].min(), imgs[0].max())
-                    tmp_att = atts[0].cpu().numpy().mean(axis=1)
-                    print('number of attentions in batch:', len(atts), atts[0].shape, atts[0].min(), atts[0].max(), tmp_att.shape, tmp_att.min(), tmp_att.max())
+                    tmp_att = atts[:, 0, ...].cpu().numpy().mean(axis=1)
+                    print('number of attentions in batch:', atts.shape[1], atts[:, 0, ...].shape, atts[:, 0, ...].min(), atts[:, 0, ...].max(), tmp_att.shape, tmp_att.min(), tmp_att.max())
                     for j in range(args.att_heads):
-                        vis.heatmap(cv2.resize(atts[j].cpu().numpy()[0, ...].mean(axis=0), (224, 224)), \
+                        vis.heatmap(cv2.resize(atts[:, j, ...].cpu().numpy()[0, ...].mean(axis=0), (224, 224)), \
                             win=j+1000, opts=dict(title='Att_%d'%j))
                     '''
-                    att_imgs = np.concatenate([np.transpose((np.repeat(atts[i].cpu().numpy()[0, ...].mean(axis=0)[...,np.newaxis], 3, axis=-1)*255).astype(np.uint8), (2, 0, 1))[np.newaxis] for i in range(3)])
+                    att_imgs = np.concatenate([np.transpose((np.repeat(atts[:, i, ...].cpu().numpy()[0, ...].mean(axis=0)[...,np.newaxis], 3, axis=-1)*255).astype(np.uint8), (2, 0, 1))[np.newaxis] for i in range(3)])
                     print(att_imgs.shape)
                     vis.images(att_imgs, \
                         win=i+1000, opts=dict(title='Att_%d'%i))
                     '''
-                    top_4[i] = {'fn': batch[1][0], 'query': query.cpu().numpy(), 'top_8': []}
+                    top_4[i] = {'fn': batch[2][0][0], 'query': query.cpu().numpy(), 'top_8': []}
                     vis.image(np.transpose(cv2.imread(os.path.join(args.img_folder_test, top_4[i]['fn']))[..., ::-1], (2, 0, 1)), \
                         win=i+100, opts=dict(title='Query_%d'%i))    
                     print('Added query.')                
@@ -122,7 +122,7 @@ if __name__ == '__main__':
                     for j in range(4):
                         dist = np.sum((top_4[j]['query'] - embedding)**2)
                         if len(top_4[j]['top_8']) < 8 or (len(top_4[j]['top_8']) >= 8 and dist < top_4[j]['top_8'][-1]['distance']):
-                            top_4[j]['top_8'].append({'fn': batch[1][0], 'distance': dist})
+                            top_4[j]['top_8'].append({'fn': batch[2][0][0], 'distance': dist})
                             if len(top_4[j]['top_8']) > 8:
                                 last_fn = top_4[j]['top_8'][-1]['fn']
                                 top_4[j]['top_8'] = sorted(top_4[j]['top_8'], key=lambda x: x['distance'])
