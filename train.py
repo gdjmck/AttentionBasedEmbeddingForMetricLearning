@@ -157,7 +157,7 @@ if __name__ == '__main__':
 
                 optimizer.zero_grad()
                 l_div, l_homo, l_heter = criterion.criterion(anchors, positives, negatives)
-                l = 10*l_div + l_homo + l_heter
+                l = l_div + (l_homo + l_heter) / (3*anchors.size(0))
                 l.backward()
                 optimizer.step()
 

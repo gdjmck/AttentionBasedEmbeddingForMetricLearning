@@ -132,25 +132,6 @@ def get_distance(x):
     return dist
 
 class   DistanceWeightedSampling(nn.Module):
-    '''
-    parameters
-    ----------
-    batch_k: int
-        number of images per class
-
-    Inputs:
-        data: input tensor with shapeee (batch_size, edbed_dim)
-            Here we assume the consecutive batch_k examples are of the same class.
-            For example, if batch_k = 5, the first 5 examples belong to the same class,
-            6th-10th examples belong to another class, etc.
-    Outputs:
-        a_indices: indicess of anchors
-        x[a_indices]
-        x[p_indices]
-        x[n_indices]
-        xxx
-
-    '''
 
     def __init__(self, batch_k, cutoff=0.5, nonzero_loss_cutoff=1.4, normalize =False,  **kwargs):
         super(DistanceWeightedSampling,self).__init__()

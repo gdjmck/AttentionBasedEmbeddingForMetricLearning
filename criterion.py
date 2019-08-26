@@ -12,8 +12,7 @@ def L_divergence(feats):
     loss = 0
     for i in range(n):
         for j in range(i+1, n):
-            loss += torch.clamp(1.2-torch.sum((feats[i, ...] - feats[j, ...]).pow(2)), min=0)
-    loss = 2*loss / (n-1)
+            loss += torch.clamp(1-torch.sum((feats[i, ...] - feats[j, ...]).pow(2)), min=0)
     return loss
 
 def loss_func(tensor):
