@@ -90,8 +90,8 @@ step = 0
 if __name__ == '__main__':
     # TEST DATASET
     if args.test and args.resume:
-                dataset_test = torch.utils.data.DataLoader(imagefolder(return_fn=True, folder=args.img_folder_test),\
-                                                            batch_size=1, shuffle=True, drop_last=False, num_workers=max(1, int(args.num_workers/2)))
+        dataset_test = torch.utils.data.DataLoader(imagefolder(return_fn=True, folder=args.img_folder_test),\
+                                                    batch_size=1, shuffle=True, drop_last=False, num_workers=max(1, int(args.num_workers/2)))
         vis = visdom.Visdom()
         model.eval()
         top_4 = {}
