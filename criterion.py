@@ -5,8 +5,8 @@ def L_metric(feat1, feat2, same_class=True):
     if same_class:
         return torch.dist(feat1, feat2).pow(2)
     else:
-        assert feat1.size(1) == (feat1 * feat1).sum()
-        return torch.clamp(feat1.size(1)-torch.dist(feat1, feat2).pow(2), min=0)
+        assert feat1.size(1) * feat1.size(0) == (feat1 * feat1).sum()
+        return torch.clamp(feat1.size(1)*feat1.size(0)-torch.dist(feat1, feat2).pow(2), min=0)
 
 def L_divergence(feats):
     n = feats.shape[0]
