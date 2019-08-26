@@ -2,17 +2,19 @@ import torch
 import torch.nn.functional as F
 
 def L_metric(feat1, feat2, same_class=True):
+    d = torch.sum((feat1 - feat2).pow(2).view((-1, feat1.size(-1))), 1)
     if same_class:
-        return torch.dist(feat1, feat2).pow(2)
+        return d.sum()
     else:
-        return torch.clamp(feat1.size(1)*feat1.size(0)-torch.dist(feat1, feat2).pow(2), min=0)
+        
+        return torch.clamp(1-d, min=0).sum()
 
 def L_divergence(feats):
     n = feats.shape[0]
     loss = 0
     for i in range(n):
         for j in range(i+1, n):
-            loss += torch.clamp(1-torch.sum((feats[i, ...] - feats[j, ...]).pow(2)), min=0)
+            loss += torch.clamp(1-torch.sum((feats[i, :] - feats[j, :]).pow(2)), min=0)
     return loss
 
 def loss_func(tensor):
