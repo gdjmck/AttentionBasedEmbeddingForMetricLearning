@@ -42,7 +42,7 @@ def get_args():
     #parser.add_argument('--anno', type=str, required=True, help='location of annotation file')
     #parser.add_argument('--anno_test', type=str, required=True, help='location of test data annotation file')
     parser.add_argument('--img_folder', type=str, required=True, help='folder of image files in annotation file')
-    #parser.add_argument('--img_folder_test', type=str, default='', help='folder of test image files in annotaion file')
+    parser.add_argument('--img_folder_test', type=str, default='', help='folder of test image files in annotaion file')
     #parser.add_argument('--idx_file', type=str, required=True, help='idx file for every label class')
     #parser.add_argument('--idx_file_test', type=str, default='idx_file.pkl', help='idx file for test data, should be .pkl format')
     # model hyperparameter
@@ -157,7 +157,7 @@ if __name__ == '__main__':
 
                 optimizer.zero_grad()
                 l_div, l_homo, l_heter = criterion.criterion(anchors, positives, negatives)
-                l = 100*l_div + l_homo + l_heter
+                l = 10*l_div + l_homo + l_heter
                 l.backward()
                 optimizer.step()
 
