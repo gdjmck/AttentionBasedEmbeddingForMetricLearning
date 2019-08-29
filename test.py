@@ -15,7 +15,7 @@ if __name__ == '__main__':
     model = train.model
     model.eval()
 
-    data = train.imagefolder(os.path.join(args.img_folder_test, 'train'))
+    data = train.imagefolder(args.img_folder_test)
     # print('class to idx:', data.class_to_idx)
     # print(len(data.targets), data.targets)
 
@@ -33,6 +33,6 @@ if __name__ == '__main__':
             else:
                 embeddings[label].append(embedding)
         
-    with open('embeddings.pkl', 'wb') as f:
+    with open('embeddings_cars196_epoch%s.pkl'%args.ckpt.rsplit('/', 1)[-1][0], 'wb') as f:
         pickle.dump(embeddings, f)
         print('saved embedding.')        

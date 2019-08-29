@@ -147,10 +147,6 @@ class   DistanceWeightedSampling(nn.Module):
         x = F.normalize(x)
         #print('Raw x:', x[0, :])
         distance = get_distance(x) # n x n
-        try:
-            assert (distance != distance).any() == 0 # 因为n x d 跟 d x n算距离时乘出来的结果有负数导致sqrt操作后得到nan
-        except AssertionError:
-            print('Got an nan', x)
         #print('Raw distance:', distance[0, ...])
         distance = distance.clamp(min=self.cutoff) # 将inner product > 0.875 的压缩到0.875，即不让两个vector太过像
         log_weights = ((2.0 - float(d)) * distance.log() - (float(d-3)/2)*torch.log(torch.clamp(1.0 - 0.25*(distance*distance), min=1e-8)))
