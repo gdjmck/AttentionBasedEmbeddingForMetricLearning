@@ -24,7 +24,8 @@ if __name__ == '__main__':
 		labels.extend([label]*len(data[label]))
 		feats.extend(data[label])
 
-	feats = [torch.Tensor(feat[0]) for feat in feats]
+	feats = [torch.Tensor(feat) for feat in feats]
 	feats = torch.cat(feats, 0)
+	print(feats.shape, len(labels))
 	writer.add_embedding(feats, metadata=labels)
 	writer.close()
