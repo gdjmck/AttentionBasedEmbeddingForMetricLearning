@@ -33,6 +33,6 @@ if __name__ == '__main__':
             else:
                 embeddings[label].append(embedding)
         
-    with open('embeddings_cars196_epoch%s.pkl'%args.ckpt.rsplit('/', 1)[-1][0], 'wb') as f:
+    with open('embeddings_cars196_epoch%s.pkl'%args.ckpt.rsplit('/', 1)[-1].split('_')[0], 'wb') as f:
         pickle.dump(embeddings, f)
         print('saved embedding.')        
