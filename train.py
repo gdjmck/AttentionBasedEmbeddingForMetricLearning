@@ -248,7 +248,11 @@ if __name__ == '__main__':
                 print('Saved model.')
                 model.to(device)
     except KeyboardInterrupt:
+        if os.path.isfile(args.ckpt):
+            temp_ckpt = os.path.join(args.ckpt.rsplit('/', 1)[0], 'latest_ckpt.pth')
+        else:
+            temp_ckpt = os.path.join(args.ckpt, 'latest_ckpt.pth')
         torch.save({'state_dict': model.cpu().state_dict(), 'epoch': epoch+1, 'loss': best_performace}, \
-                            os.path.join(args.ckpt, 'latest_ckpt.pth'))
+                            temp_ckpt)
         print('Save temporary model to latest_ckpt.pth')
         exit(0)
