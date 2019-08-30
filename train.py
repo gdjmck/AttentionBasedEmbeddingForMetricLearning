@@ -11,6 +11,7 @@ import util
 import torchvision
 import torchvision.transforms as transforms
 import torchnet
+import torch.backends.cudnn as cudnn
 from tensorboardX import SummaryWriter
 from PIL import Image
 from sampler import BalancedBatchSampler
@@ -62,7 +63,12 @@ def imagefolder(folder, loader=lambda x: Image.open(x).convert('RGB'), return_fn
 
 args = get_args()
 
-device = torch.device('cuda:{}'.format(args.gpu_ids[0])) if args.gpu_ids else torch.device('cpu')
+if args.gpu_ids:
+    device = torch.device('cuda:{}'.format(args.gpu_ids[0]))
+    cudnn.benchmark = True
+else:
+    device = torch.device('cpu')
+
 #data = MetricData(data_root=args.img_folder, anno_file=args.anno, idx_file=args.idx_file)
 data = imagefolder(args.img_folder)
 dataset = torch.utils.data.DataLoader(data, batch_sampler=BalancedBatchSampler(data, batch_size=args.batch, batch_k=args.batch_k, length=args.num_batch), \
