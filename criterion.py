@@ -6,7 +6,6 @@ def L_metric(feat1, feat2, same_class=True):
     if same_class:
         return d.sum()
     else:
-        
         return torch.clamp(1-d, min=0).sum()
 
 def L_divergence(feats):

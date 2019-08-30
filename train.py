@@ -39,13 +39,10 @@ def get_args():
     parser.add_argument('--num_workers', default=2, type=int, help='')
     # test
     parser.add_argument('--test', action='store_true', help='switch on test mode')
+    parser.add_argument('--find-lr', action='store_true', help='find a suitable lr for training.')
     # annotation
-    #parser.add_argument('--anno', type=str, required=True, help='location of annotation file')
-    #parser.add_argument('--anno_test', type=str, required=True, help='location of test data annotation file')
     parser.add_argument('--img_folder', type=str, required=True, help='folder of image files in annotation file')
     parser.add_argument('--img_folder_test', type=str, default='', help='folder of test image files in annotaion file')
-    #parser.add_argument('--idx_file', type=str, required=True, help='idx file for every label class')
-    #parser.add_argument('--idx_file_test', type=str, default='idx_file.pkl', help='idx file for test data, should be .pkl format')
     # model hyperparameter
     parser.add_argument('--in_size', type=int, default=128, help='input tensor shape to put into model')
     return parser.parse_args()
@@ -92,8 +89,58 @@ else:
 model = model.to(device)
 optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
 
+
+def find_lr(init_value = 1e-8, final_value=10., beta = 0.98):
+    num = len(dataset)-1
+    mult = (final_value / init_value) ** (1/num)
+    lr = init_value
+    optimizer.param_groups[0]['lr'] = lr
+    avg_loss = 0.
+    best_loss = 0.
+    batch_num = 0
+    losses = []
+    log_lrs = []
+    for data in dataset:
+        batch_num += 1
+        #As before, get the loss for this mini-batch of inputs/outputs
+        inputs, labels = data
+        optimizer.zero_grad()
+        a_indices, anchors, positives, negatives, _ = model(inputs)
+        anchors, positives, negatives = anchors.view((-1, model.att_heads, int(512/model.att_heads))), positives.view((-1, model.att_heads, int(512/model.att_heads))), negatives.view((-1, model.att_heads, int(512/model.att_heads)))
+
+        l_div, l_homo, l_heter = criterion.criterion(anchors, positives, negatives)
+        l_div = 2*l_div / (anchors.size(1)-1)
+        loss = l_div + l_homo + l_heter
+        #Compute the smoothed loss
+        avg_loss = beta * avg_loss + (1-beta) *loss.data[0]
+        smoothed_loss = avg_loss / (1 - beta**batch_num)
+        #Stop if the loss is exploding
+        if batch_num > 1 and smoothed_loss > 4 * best_loss:
+            return log_lrs, losses
+        #Record the best loss
+        if smoothed_loss < best_loss or batch_num==1:
+            best_loss = smoothed_loss
+        #Store the values
+        losses.append(smoothed_loss)
+        log_lrs.append(math.log10(lr))
+        #Do the SGD step
+        loss.backward()
+        optimizer.step()
+        #Update the lr for the next step
+        lr *= mult
+        optimizer.param_groups[0]['lr'] = lr
+    return log_lrs, losses
+
+
 step = 0
 if __name__ == '__main__':
+
+    if args.find_lr:
+        import matplotlib.pyplot as plt
+        lrs, losses = find_lr()
+        fig = plt.plot(lrs, losses)
+        plt.savefig('lr.png')
+        sys.exit(0)
     # TEST DATASET
     if args.test and args.resume:
         dataset_test = torch.utils.data.DataLoader(imagefolder(return_fn=True, folder=args.img_folder_test),\
@@ -159,7 +206,7 @@ if __name__ == '__main__':
                 out, atts = model(x, ret_att=True)
                 a_indices, anchors, positives, negatives, _ = out
                 # print(anchors.shape, positives.shape, negatives.shape, atts.shape)
-                anchors, positives, negatives = torch.reshape(anchors, (-1, model.att_heads, int(512/model.att_heads))), torch.reshape(positives, (-1, model.att_heads, int(512/model.att_heads))), torch.reshape(negatives, (-1, model.att_heads, int(512/model.att_heads)))
+                anchors, positives, negatives = anchors.view((-1, model.att_heads, int(512/model.att_heads))), positives.view((-1, model.att_heads, int(512/model.att_heads))), negatives.view((-1, model.att_heads, int(512/model.att_heads)))
 
                 optimizer.zero_grad()
                 l_div, l_homo, l_heter = criterion.criterion(anchors, positives, negatives)
