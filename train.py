@@ -2,6 +2,7 @@ import argparse
 import torch
 import os
 import sys
+import math
 import shutil
 import numpy as np
 import visdom
@@ -104,6 +105,7 @@ def find_lr(init_value = 1e-8, final_value=10., beta = 0.98):
         batch_num += 1
         #As before, get the loss for this mini-batch of inputs/outputs
         inputs, labels = data
+        inputs = inputs.to(device)
         optimizer.zero_grad()
         a_indices, anchors, positives, negatives, _ = model(inputs)
         anchors, positives, negatives = anchors.view((-1, model.att_heads, int(512/model.att_heads))), positives.view((-1, model.att_heads, int(512/model.att_heads))), negatives.view((-1, model.att_heads, int(512/model.att_heads)))
@@ -112,7 +114,7 @@ def find_lr(init_value = 1e-8, final_value=10., beta = 0.98):
         l_div = 2*l_div / (anchors.size(1)-1)
         loss = l_div + l_homo + l_heter
         #Compute the smoothed loss
-        avg_loss = beta * avg_loss + (1-beta) *loss.data[0]
+        avg_loss = beta * avg_loss + (1-beta) *loss.item()
         smoothed_loss = avg_loss / (1 - beta**batch_num)
         #Stop if the loss is exploding
         if batch_num > 1 and smoothed_loss > 4 * best_loss:
