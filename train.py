@@ -205,21 +205,17 @@ if __name__ == '__main__':
             for i, batch in enumerate(dataset):
                 x, y = batch
                 x = x.to(device)
-                out, atts = model(x, ret_att=True)
-                a_indices, anchors, positives, negatives, _ = out
-                # print(anchors.shape, positives.shape, negatives.shape, atts.shape)
-                anchors, positives, negatives = anchors.view((-1, model.att_heads, int(512/model.att_heads))), positives.view((-1, model.att_heads, int(512/model.att_heads))), negatives.view((-1, model.att_heads, int(512/model.att_heads)))
+                embeddings, atts = model(x, ret_att=True, sampling=False)
 
                 optimizer.zero_grad()
-                l_div, l_homo, l_heter = criterion.criterion(anchors, positives, negatives)
-                l_div = 2*l_div / (anchors.size(1)-1)
+                l_div, l_homo, l_heter = criterion.loss_func(embeddings, args.batch_k)
                 l = l_div + l_homo + l_heter
                 l.backward()
                 optimizer.step()
 
-                loss_homo += l_homo.item() / anchors.size(0)
-                loss_heter += l_heter.item() / anchors.size(0)
-                loss_div += l_div.item() / anchors.size(0)
+                loss_homo += l_homo.item()
+                loss_heter += l_heter.item()
+                loss_div += l_div.item()
                 if i % 100 == 0:
                     print('\tBatch %d\tloss div: %.4f (%.3f)\tloss homo: %.4f (%.3f)\tloss heter: %.4f (%.3f)'%\
                         (i, loss_div/(i+1), (loss_div+eps)/(loss_div+loss_heter+loss_homo+eps), loss_homo/(i+1), (loss_homo+eps)/(loss_div+loss_homo+loss_heter+eps), loss_heter/(i+1), (loss_heter+eps)/(loss_div+loss_heter+loss_homo+eps)))

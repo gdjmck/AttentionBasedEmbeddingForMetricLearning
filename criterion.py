@@ -2,6 +2,10 @@ import torch
 import torch.nn.functional as F
 
 def L_metric(feat1, feat2, same_class=True):
+    '''
+        feat1 same size as feat2
+        feat size: (batch_size, atts, feat_size)
+    '''
     d = torch.sum((feat1 - feat2).pow(2).view((-1, feat1.size(-1))), 1)
     if same_class:
         return d.sum()
@@ -16,19 +20,22 @@ def L_divergence(feats):
             loss += torch.clamp(1-torch.sum((feats[i, :] - feats[j, :]).pow(2)), min=0)
     return loss
 
-def loss_func(tensor):
-        assert tensor.shape[0] % 2 == 0
-        batch_split = int(tensor.shape[0] / 2) # idx < batch_split are positive pairs, negative pairs otherwise
+def loss_func(tensor, batch_k):
+        batch_size = tensor.size(0)
+        assert batch_size % batch_k == 0
+        assert batch_k > 1
         loss_homo, loss_heter, loss_div = 0, 0, 0
-        for i in range(0, batch_split, 2):
+        for i in range(batch_size):
                 loss_div += L_divergence(tensor[i, ...])
-                loss_div += L_divergence(tensor[i+1, ...])
-                loss_homo += L_metric(tensor[i, ...], tensor[i+1, ...])
-        for i in range(batch_split, batch_split*2, 2):
-                loss_div += L_divergence(tensor[i, ...])
-                loss_div += L_divergence(tensor[i+1, ...])
-                loss_heter += L_metric(tensor[i, ...], tensor[i+1, ...], False)
-        return loss_div, loss_homo, loss_heter
+
+        for group_index in range(batch_size // batch_k):
+                for i in range(batch_k):
+                        anchor = tensor[i+group_index*batch_k: 1+i+group_index*batch_k, ...]
+                        for j in range(i+1, (group_index+1)*batch_k):
+                                loss_homo += L_metric(anchor, tensor[j:j+1, ...])
+                        for j in range((group_index+1)*batch_k, batch_size):
+                                loss_heter += L_metric(anchor, tensor[j:j+1, ...])
+        return loss_div/(tensor.size(1)-1), loss_homo/(batch_k-1), loss_heter/(batch_size-batch_k)   
 
 def criterion(anchors, positives, negatives):
         loss_homo = L_metric(anchors, positives)
