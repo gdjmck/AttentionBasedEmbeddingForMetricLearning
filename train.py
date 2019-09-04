@@ -206,6 +206,7 @@ if __name__ == '__main__':
                 x, y = batch
                 x = x.to(device)
                 embeddings, atts = model(x, ret_att=True, sampling=False)
+                embeddings = embeddings.view(embeddings.size(0), args.att_heads, -1)
 
                 optimizer.zero_grad()
                 l_div, l_homo, l_heter = criterion.loss_func(embeddings, args.batch_k)
