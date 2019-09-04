@@ -107,11 +107,10 @@ def find_lr(init_value = 1e-8, final_value=10., beta = 0.98):
         inputs, labels = data
         inputs = inputs.to(device)
         optimizer.zero_grad()
-        a_indices, anchors, positives, negatives, _ = model(inputs)
-        anchors, positives, negatives = anchors.view((-1, model.att_heads, int(512/model.att_heads))), positives.view((-1, model.att_heads, int(512/model.att_heads))), negatives.view((-1, model.att_heads, int(512/model.att_heads)))
+        embeddings = model(inputs, sampling=False)
+        embeddings = embeddings.view((-1, model.att_heads, int(512/model.att_heads)))
 
-        l_div, l_homo, l_heter = criterion.criterion(anchors, positives, negatives)
-        l_div = 2*l_div / (anchors.size(1)-1)
+        l_div, l_homo, l_heter = criterion.loss_func(embeddings)
         loss = l_div + l_homo + l_heter
         #Compute the smoothed loss
         avg_loss = beta * avg_loss + (1-beta) *loss.item()
