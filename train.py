@@ -93,7 +93,7 @@ else:
     best_performace = np.Inf
 model = model.to(device)
 optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.95, weight_decay=1e-4)
-one_cycle = OneCycle( int(len(dataset)*(args.epochs-args.epoch_start)/args.batch), 0.8, 
+one_cycle = OneCycle( int(len(dataset)*(args.epochs-args.epoch_start)/args.batch), max_lr=args.lr, 
                         prcnt=(args.epochs-82)*100/args.epochs, momentum_vals=(0.95, 0.8))
 
 
