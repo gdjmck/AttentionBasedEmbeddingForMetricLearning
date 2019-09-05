@@ -13,6 +13,7 @@ import torchvision
 import torchvision.transforms as transforms
 import torchnet
 import torch.backends.cudnn as cudnn
+from OneCycle import OneCycle, update_lr, update_mom
 from tensorboardX import SummaryWriter
 from PIL import Image
 from sampler import BalancedBatchSampler
@@ -37,6 +38,7 @@ def get_args():
     parser.add_argument('--lr', type=float, default=1e-4, help='learning rate')
     parser.add_argument('--ckpt', type=str, default='./ckpt', help='checkpoint folder')
     parser.add_argument('--resume', action='store_true', help='load previous best model and resume training')
+    parser.add_argument('--cycle', action='store_true', help='turn on one cycle policy')
     parser.add_argument('--num_workers', default=2, type=int, help='')
     # test
     parser.add_argument('--test', action='store_true', help='switch on test mode')
@@ -88,7 +90,9 @@ else:
     start_epoch = 0
     best_performace = np.Inf
 model = model.to(device)
-optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
+optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.95, weight_decay=1e-4)
+one_cycle = OneCycle( int(len(dataset)*(args.epochs-args.epoch_start)/args.batch), 0.8, 
+                        prcn=(args.epochs-82)*100/args.epochs, momentum_vals=(0.95, 0.8))
 
 
 def find_lr(init_value = 1e-8, final_value=10., beta = 0.98):
@@ -207,6 +211,10 @@ if __name__ == '__main__':
                 embeddings, atts = model(x, ret_att=True, sampling=False)
                 embeddings = embeddings.view(embeddings.size(0), args.att_heads, -1)
 
+                if args.cycle:
+                    lr, mom = one_cycle.calc()
+                    update_lr(optimizer, lr)
+                    update_mom(optimizer, mom)
                 optimizer.zero_grad()
                 l_div, l_homo, l_heter = criterion.loss_func(embeddings, args.batch_k)
                 l = l_div + l_homo + l_heter

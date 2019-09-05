@@ -57,3 +57,21 @@ class BalancedBatchSampler(Sampler):
             raise NotImplementedError
         
 	
+if __name__ == '__main__':
+    import sys
+    import torchvision.transforms as transforms
+    dataset = torchvision.datasets.ImageFolder('/home/chk/Downloads/cars_stanford/car_kaggle/train', 
+                                        transform=transforms.Compose([
+                                            transforms.Resize(228),
+                                            transforms.RandomCrop((224, 224)),
+                                            transforms.RandomHorizontalFlip(),
+                                            transforms.ToTensor(),
+                                            transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                            std=[0.229, 0.224, 0.225])]))
+    sampler = BalancedBatchSampler(dataset, 4, 2, 100)
+    loader = torch.utils.data.DataLoader(dataset, batch_sampler=sampler)
+    print(len(loader))
+    sys.exit(0)
+    for i, _ in enumerate(loader):
+        pass
+    print(i+1)
