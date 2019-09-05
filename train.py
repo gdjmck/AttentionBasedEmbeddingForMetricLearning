@@ -71,8 +71,10 @@ else:
 
 #data = MetricData(data_root=args.img_folder, anno_file=args.anno, idx_file=args.idx_file)
 data = imagefolder(args.img_folder)
+data_test = imagefolder(args.img_folder_test)
 dataset = torch.utils.data.DataLoader(data, batch_sampler=BalancedBatchSampler(data, batch_size=args.batch, batch_k=args.batch_k, length=args.num_batch), \
                                         num_workers=args.num_workers)
+datatset_test = torch.util.data.DataLoader(data_test, batch_sampler=BalancedBatchSampler(data_test, batch_size=args.batch, batch_k=args.batch_k, lenght=args.num_batch//2))
 model = MetricLearner(pretrain=args.pretrain, batch_k=args.batch_k, att_heads=args.att_heads)
 if not os.path.exists(args.ckpt):
     os.makedirs(args.ckpt)
@@ -241,9 +243,7 @@ if __name__ == '__main__':
             loss_heter /= (i+1)
             loss_div /= (i+1)
             print('Epoch %d batches %d\tdiv:%.4f\thomo:%.4f\theter:%.4f'%(epoch, i+1, loss_div, loss_homo, loss_heter))
-            # mlog.update_loss(loss_homo, 'homo')
-            # mlog.update_loss(loss_heter, 'heter')
-            # mlog.update_loss(loss_div, 'divergence')
+
             if (loss_homo+loss_heter) < best_performace:
                 best_performace = loss_homo + loss_heter
                 torch.save({'state_dict': model.cpu().state_dict(), 'epoch': epoch+1, 'loss': best_performace}, \
@@ -251,6 +251,24 @@ if __name__ == '__main__':
                 shutil.copy(os.path.join(args.ckpt, '%d_ckpt.pth'%epoch), os.path.join(args.ckpt, 'best_performance.pth'))
                 print('Saved model.')
                 model.to(device)
+
+            # TEST PHASE
+            model.eval()
+            loss_div, loss_homo, loss_heter = 0, 0, 0
+            for i, batch in enumerate(dataset_test):
+                x, y = batch
+                x = x.to(device)
+                embeddings, atts = model(x, ret_att=True, sampling=False)
+                embeddings = embeddings.view(embeddings.size(0), args.att_heads, -1)
+
+                l_div, l_homo, l_heter = criterion.loss_func(embeddings, args.batch_k)
+                loss_homo += l_homo.item()
+                loss_heter += l_heter.item()
+                loss_div += l_div.item()
+                if i % 100 == 0:
+                    print('\tBatch %d\tloss div: %.4f (%.3f)\tloss homo: %.4f (%.3f)\tloss heter: %.4f (%.3f)'%\
+                        (i, l_div.item(), loss_div/(i+1), l_homo.item(), loss_homo/(i+1), l_heter.item(), loss_heter/(i+1)))
+
     except KeyboardInterrupt:
         if os.path.isfile(args.ckpt):
             temp_ckpt = os.path.join(args.ckpt.rsplit('/', 1)[0], 'latest_ckpt.pth')
