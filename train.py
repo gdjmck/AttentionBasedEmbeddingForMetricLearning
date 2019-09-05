@@ -74,7 +74,7 @@ data = imagefolder(args.img_folder)
 data_test = imagefolder(args.img_folder_test)
 dataset = torch.utils.data.DataLoader(data, batch_sampler=BalancedBatchSampler(data, batch_size=args.batch, batch_k=args.batch_k, length=args.num_batch), \
                                         num_workers=args.num_workers)
-datatset_test = torch.util.data.DataLoader(data_test, batch_sampler=BalancedBatchSampler(data_test, batch_size=args.batch, batch_k=args.batch_k, lenght=args.num_batch//2))
+datatset_test = torch.utils.data.DataLoader(data_test, batch_sampler=BalancedBatchSampler(data_test, batch_size=args.batch, batch_k=args.batch_k, length=args.num_batch//2))
 model = MetricLearner(pretrain=args.pretrain, batch_k=args.batch_k, att_heads=args.att_heads)
 if not os.path.exists(args.ckpt):
     os.makedirs(args.ckpt)
