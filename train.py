@@ -92,7 +92,7 @@ else:
 model = model.to(device)
 optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.95, weight_decay=1e-4)
 one_cycle = OneCycle( int(len(dataset)*(args.epochs-args.epoch_start)/args.batch), 0.8, 
-                        prcn=(args.epochs-82)*100/args.epochs, momentum_vals=(0.95, 0.8))
+                        prcnt=(args.epochs-82)*100/args.epochs, momentum_vals=(0.95, 0.8))
 
 
 def find_lr(init_value = 1e-8, final_value=10., beta = 0.98):
@@ -226,7 +226,7 @@ if __name__ == '__main__':
                 loss_div += l_div.item()
                 if i % 100 == 0:
                     print('\tBatch %d\tloss div: %.4f (%.3f)\tloss homo: %.4f (%.3f)\tloss heter: %.4f (%.3f)'%\
-                        (i, loss_div/(i+1), (loss_div+eps)/(loss_div+loss_heter+loss_homo+eps), loss_homo/(i+1), (loss_homo+eps)/(loss_div+loss_homo+loss_heter+eps), loss_heter/(i+1), (loss_heter+eps)/(loss_div+loss_heter+loss_homo+eps)))
+                        (i, l_div.item(), loss_div/(i+1), l_homo.item(), loss_homo/(i+1), l_heter.item(), loss_heter/(i+1)))
                 if i % 1000 == 0:
                     writer.add_figure('grad_flow', util.plot_grad_flow_v2(model.named_parameters()), global_step=step//5)
                 if i % 200 == 0:
