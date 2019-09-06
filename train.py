@@ -74,7 +74,7 @@ data = imagefolder(args.img_folder)
 data_test = imagefolder(args.img_folder_test)
 dataset = torch.utils.data.DataLoader(data, batch_sampler=BalancedBatchSampler(data, batch_size=args.batch, batch_k=args.batch_k, length=args.num_batch), \
                                         num_workers=args.num_workers)
-datatset_test = torch.utils.data.DataLoader(data_test, batch_sampler=BalancedBatchSampler(data_test, batch_size=args.batch, batch_k=args.batch_k, length=args.num_batch//2))
+dataset_test = torch.utils.data.DataLoader(data_test, batch_sampler=BalancedBatchSampler(data_test, batch_size=args.batch, batch_k=args.batch_k, length=args.num_batch//2))
 model = MetricLearner(pretrain=args.pretrain, batch_k=args.batch_k, att_heads=args.att_heads)
 if not os.path.exists(args.ckpt):
     os.makedirs(args.ckpt)
@@ -219,7 +219,7 @@ if __name__ == '__main__':
                     update_mom(optimizer, mom)
                 optimizer.zero_grad()
                 l_div, l_homo, l_heter = criterion.loss_func(embeddings, args.batch_k)
-                l = (l_div + l_homo + l_heter) / batch.size(0)
+                l = (l_div + l_homo + l_heter) / x.size(0)
                 l.backward()
                 optimizer.step()
 
