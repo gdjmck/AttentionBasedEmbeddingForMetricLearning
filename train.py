@@ -246,9 +246,10 @@ if __name__ == '__main__':
 
             if (loss_homo+loss_heter+loss_div) < best_performace:
                 best_performace = loss_homo + loss_heter + loss_div
+                dst_path = args.ckpt.rsplit('/', 1)[0] if args.ckpt.endswith('.pth') else args.ckpt
                 torch.save({'state_dict': model.cpu().state_dict(), 'epoch': epoch+1, 'loss': best_performace}, \
-                            os.path.join(args.ckpt, '%d_ckpt.pth'%epoch))
-                shutil.copy(os.path.join(args.ckpt, '%d_ckpt.pth'%epoch), os.path.join(args.ckpt, 'best_performance.pth'))
+                            os.path.join(dst_path, '%d_ckpt.pth'%epoch))
+                shutil.copy(os.path.join(dst_path, '%d_ckpt.pth'%epoch), os.path.join(dst_path, 'best_performance.pth'))
                 print('Saved model.')
                 model.to(device)
 
