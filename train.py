@@ -219,7 +219,7 @@ if __name__ == '__main__':
                     update_mom(optimizer, mom)
                 optimizer.zero_grad()
                 l_div, l_homo, l_heter = criterion.loss_func(embeddings, args.batch_k)
-                l = l_div + l_homo + l_heter
+                l = (l_div + l_homo + l_heter) / batch.size(0)
                 l.backward()
                 optimizer.step()
 
