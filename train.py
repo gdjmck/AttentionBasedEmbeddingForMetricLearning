@@ -116,8 +116,8 @@ def find_lr(init_value = 1e-8, final_value=10., beta = 0.98):
         embeddings = model(inputs, sampling=False)
         embeddings = embeddings.view((-1, model.att_heads, int(512/model.att_heads)))
 
-        l_div, l_homo, l_heter = criterion.loss_func(embeddings)
-        loss = l_div + l_homo + l_heter
+        l_div, l_homo, l_heter = criterion.loss_func(embeddings, args.batch_k)
+        loss = (l_div + l_homo + l_heter) / inputs.size(0)
         #Compute the smoothed loss
         avg_loss = beta * avg_loss + (1-beta) *loss.item()
         smoothed_loss = avg_loss / (1 - beta**batch_num)
@@ -265,9 +265,8 @@ if __name__ == '__main__':
                 loss_homo += l_homo.item()
                 loss_heter += l_heter.item()
                 loss_div += l_div.item()
-                if i % 100 == 0:
-                    print('\tBatch %d\tloss div: %.4f (%.3f)\tloss homo: %.4f (%.3f)\tloss heter: %.4f (%.3f)'%\
-                        (i, l_div.item(), loss_div/(i+1), l_homo.item(), loss_homo/(i+1), l_heter.item(), loss_heter/(i+1)))
+            print('\tBatch %d\tloss div: %.4f (%.3f)\tloss homo: %.4f (%.3f)\tloss heter: %.4f (%.3f)'%\
+                (i, l_div.item(), loss_div/(i+1), l_homo.item(), loss_homo/(i+1), l_heter.item(), loss_heter/(i+1)))
 
     except KeyboardInterrupt:
         if os.path.isfile(args.ckpt):
