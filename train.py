@@ -266,7 +266,7 @@ if __name__ == '__main__':
                 loss_homo += l_homo.item()
                 loss_heter += l_heter.item()
                 loss_div += l_div.item()
-            print('\tBatch %d\tloss div: %.4f (%.3f)\tloss homo: %.4f (%.3f)\tloss heter: %.4f (%.3f)'%\
+            print('\tTest phase\tloss div: %.4f (%.3f)\tloss homo: %.4f (%.3f)\tloss heter: %.4f (%.3f)'%\
                 (i, l_div.item(), loss_div/(i+1), l_homo.item(), loss_homo/(i+1), l_heter.item(), loss_heter/(i+1)))
 
     except KeyboardInterrupt:
