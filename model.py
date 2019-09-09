@@ -100,14 +100,16 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         att_input = self.att_prep(sp)
         atts = torch.cat([self.att[i](att_input).unsqueeze(1) for i in range(self.att_heads)], dim=1) # (N, att_heads, depth, H, W)
         # Normalize attention map
+        '''
         N, _, D, H, W = atts.size()
         atts = atts.view(-1, H*W) # (N*att_heads*depth, H*W)
         att_max, _ = atts.max(dim=1, keepdim=True) # (N*att_heads*depth, 1)
         att_min, _ = atts.min(dim=1, keepdim=True) # (N*att_heads*depth, 1)
         atts = (atts - att_min) / (att_max - att_min) # (N*depth, H*W)
         atts = atts.view(N, -1, D, H, W)
+        '''
 
-        embedding = torch.cat([self.feat_global(atts[:, i, ...]*sp).unsqueeze(1) for i in range(self.att_heads)], 1)
+        embedding = torch.cat([self.feat_global(F.sigmoid(atts[:, i, ...])*sp).unsqueeze(1) for i in range(self.att_heads)], 1)
         #print('embedding in forward:', embedding.shape)
         embedding = torch.flatten(embedding, 1)
         if sampling:
