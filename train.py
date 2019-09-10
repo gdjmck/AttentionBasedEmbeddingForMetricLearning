@@ -13,6 +13,7 @@ import torchvision
 import torchvision.transforms as transforms
 import torchnet
 import torch.backends.cudnn as cudnn
+from OneCycle import OneCycle, update_lr, update_mom
 from tensorboardX import SummaryWriter
 from PIL import Image
 from sampler import BalancedBatchSampler
@@ -37,6 +38,7 @@ def get_args():
     parser.add_argument('--lr', type=float, default=1e-4, help='learning rate')
     parser.add_argument('--ckpt', type=str, default='./ckpt', help='checkpoint folder')
     parser.add_argument('--resume', action='store_true', help='load previous best model and resume training')
+    parser.add_argument('--cycle', action='store_true', help='turn on one cycle policy')
     parser.add_argument('--num_workers', default=2, type=int, help='')
     # test
     parser.add_argument('--test', action='store_true', help='switch on test mode')
@@ -69,8 +71,10 @@ else:
 
 #data = MetricData(data_root=args.img_folder, anno_file=args.anno, idx_file=args.idx_file)
 data = imagefolder(args.img_folder)
+data_test = imagefolder(args.img_folder_test)
 dataset = torch.utils.data.DataLoader(data, batch_sampler=BalancedBatchSampler(data, batch_size=args.batch, batch_k=args.batch_k, length=args.num_batch), \
                                         num_workers=args.num_workers)
+dataset_test = torch.utils.data.DataLoader(data_test, batch_sampler=BalancedBatchSampler(data_test, batch_size=args.batch, batch_k=args.batch_k, length=args.num_batch//2))
 model = MetricLearner(pretrain=args.pretrain, batch_k=args.batch_k, att_heads=args.att_heads)
 if not os.path.exists(args.ckpt):
     os.makedirs(args.ckpt)
@@ -88,7 +92,9 @@ else:
     start_epoch = 0
     best_performace = np.Inf
 model = model.to(device)
-optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
+optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.95, weight_decay=1e-4)
+one_cycle = OneCycle( int(len(dataset)*(args.epochs-args.epoch_start)/args.batch), max_lr=args.lr, 
+                        prcnt=(args.epochs-82)*100/args.epochs, momentum_vals=(0.95, 0.8))
 
 
 def find_lr(init_value = 1e-8, final_value=10., beta = 0.98):
@@ -107,12 +113,11 @@ def find_lr(init_value = 1e-8, final_value=10., beta = 0.98):
         inputs, labels = data
         inputs = inputs.to(device)
         optimizer.zero_grad()
-        a_indices, anchors, positives, negatives, _ = model(inputs)
-        anchors, positives, negatives = anchors.view((-1, model.att_heads, int(512/model.att_heads))), positives.view((-1, model.att_heads, int(512/model.att_heads))), negatives.view((-1, model.att_heads, int(512/model.att_heads)))
+        embeddings = model(inputs, sampling=False)
+        embeddings = embeddings.view((-1, model.att_heads, int(512/model.att_heads)))
 
-        l_div, l_homo, l_heter = criterion.criterion(anchors, positives, negatives)
-        l_div = 2*l_div / (anchors.size(1)-1)
-        loss = l_div + l_homo + l_heter
+        l_div, l_homo, l_heter = criterion.loss_func(embeddings, args.batch_k)
+        loss = (l_div + l_homo + l_heter) / inputs.size(0)
         #Compute the smoothed loss
         avg_loss = beta * avg_loss + (1-beta) *loss.item()
         smoothed_loss = avg_loss / (1 - beta**batch_num)
@@ -205,24 +210,25 @@ if __name__ == '__main__':
             for i, batch in enumerate(dataset):
                 x, y = batch
                 x = x.to(device)
-                out, atts = model(x, ret_att=True)
-                a_indices, anchors, positives, negatives, _ = out
-                # print(anchors.shape, positives.shape, negatives.shape, atts.shape)
-                anchors, positives, negatives = anchors.view((-1, model.att_heads, int(512/model.att_heads))), positives.view((-1, model.att_heads, int(512/model.att_heads))), negatives.view((-1, model.att_heads, int(512/model.att_heads)))
+                embeddings, atts = model(x, ret_att=True, sampling=False)
+                embeddings = embeddings.view(embeddings.size(0), args.att_heads, -1)
 
+                if args.cycle:
+                    lr, mom = one_cycle.calc()
+                    update_lr(optimizer, lr)
+                    update_mom(optimizer, mom)
                 optimizer.zero_grad()
-                l_div, l_homo, l_heter = criterion.criterion(anchors, positives, negatives)
-                l_div = 2*l_div / (anchors.size(1)-1)
-                l = l_div + l_homo + l_heter
+                l_div, l_homo, l_heter = criterion.loss_func(embeddings, args.batch_k)
+                l = (l_div + l_homo + l_heter) / x.size(0)
                 l.backward()
                 optimizer.step()
 
-                loss_homo += l_homo.item() / anchors.size(0)
-                loss_heter += l_heter.item() / anchors.size(0)
-                loss_div += l_div.item() / anchors.size(0)
+                loss_homo += l_homo.item()
+                loss_heter += l_heter.item()
+                loss_div += l_div.item()
                 if i % 100 == 0:
                     print('\tBatch %d\tloss div: %.4f (%.3f)\tloss homo: %.4f (%.3f)\tloss heter: %.4f (%.3f)'%\
-                        (i, loss_div/(i+1), (loss_div+eps)/(loss_div+loss_heter+loss_homo+eps), loss_homo/(i+1), (loss_homo+eps)/(loss_div+loss_homo+loss_heter+eps), loss_heter/(i+1), (loss_heter+eps)/(loss_div+loss_heter+loss_homo+eps)))
+                        (i, l_div.item(), loss_div/(i+1), l_homo.item(), loss_homo/(i+1), l_heter.item(), loss_heter/(i+1)))
                 if i % 1000 == 0:
                     writer.add_figure('grad_flow', util.plot_grad_flow_v2(model.named_parameters()), global_step=step//5)
                 if i % 200 == 0:
@@ -237,16 +243,32 @@ if __name__ == '__main__':
             loss_heter /= (i+1)
             loss_div /= (i+1)
             print('Epoch %d batches %d\tdiv:%.4f\thomo:%.4f\theter:%.4f'%(epoch, i+1, loss_div, loss_homo, loss_heter))
-            # mlog.update_loss(loss_homo, 'homo')
-            # mlog.update_loss(loss_heter, 'heter')
-            # mlog.update_loss(loss_div, 'divergence')
-            if (loss_homo+loss_heter) < best_performace:
-                best_performace = loss_homo + loss_heter
+
+            if (loss_homo+loss_heter+loss_div) < best_performace:
+                best_performace = loss_homo + loss_heter + loss_div
+                dst_path = args.ckpt.rsplit('/', 1)[0] if args.ckpt.endswith('.pth') else args.ckpt
                 torch.save({'state_dict': model.cpu().state_dict(), 'epoch': epoch+1, 'loss': best_performace}, \
-                            os.path.join(args.ckpt, '%d_ckpt.pth'%epoch))
-                shutil.copy(os.path.join(args.ckpt, '%d_ckpt.pth'%epoch), os.path.join(args.ckpt, 'best_performance.pth'))
+                            os.path.join(dst_path, '%d_ckpt.pth'%epoch))
+                shutil.copy(os.path.join(dst_path, '%d_ckpt.pth'%epoch), os.path.join(dst_path, 'best_performance.pth'))
                 print('Saved model.')
                 model.to(device)
+
+            # TEST PHASE
+            model.eval()
+            loss_div, loss_homo, loss_heter = 0, 0, 0
+            for i, batch in enumerate(dataset_test):
+                x, y = batch
+                x = x.to(device)
+                embeddings, atts = model(x, ret_att=True, sampling=False)
+                embeddings = embeddings.view(embeddings.size(0), args.att_heads, -1)
+
+                l_div, l_homo, l_heter = criterion.loss_func(embeddings, args.batch_k)
+                loss_homo += l_homo.item()
+                loss_heter += l_heter.item()
+                loss_div += l_div.item()
+            print('\tTest phase\tloss div: %.4f (%.3f)\tloss homo: %.4f (%.3f)\tloss heter: %.4f (%.3f)'%\
+                (i, l_div.item(), loss_div/(i+1), l_homo.item(), loss_homo/(i+1), l_heter.item(), loss_heter/(i+1)))
+
     except KeyboardInterrupt:
         if os.path.isfile(args.ckpt):
             temp_ckpt = os.path.join(args.ckpt.rsplit('/', 1)[0], 'latest_ckpt.pth')
