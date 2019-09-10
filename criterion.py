@@ -8,17 +8,19 @@ def L_metric(feat1, feat2, same_class=True):
     '''
     d = torch.sum((feat1 - feat2).pow(2).view((-1, feat1.size(-1))), 1)
     if same_class:
-        return d.sum()
+        return d.sum() / d.size(0)
     else:
-        return torch.clamp(1-d, min=0).sum()
+        return torch.clamp(1-d, min=0).sum() / d.size(0)
 
 def L_divergence(feats):
     n = feats.shape[0]
     loss = 0
+    cnt = 0
     for i in range(n):
         for j in range(i+1, n):
             loss += torch.clamp(1-torch.sum((feats[i, :] - feats[j, :]).pow(2)), min=0)
-    return loss
+            cnt += 1
+    return loss / cnt
 
 def loss_func(tensor, batch_k):
         batch_size = tensor.size(0)
@@ -44,7 +46,7 @@ def criterion(anchors, positives, negatives):
         loss_div = 0
         for i in range(anchors.shape[0]):
                 loss_div += (L_divergence(anchors[i, ...]) + L_divergence(positives[i, ...]) + L_divergence(negatives[i, ...])) / 3
-        return loss_div, loss_homo, loss_heter
+        return loss_div / anchors.shape[0], loss_homo, loss_heter
         
 def cluster_centroid_loss(cluster_a, cluster_b, margin=1):
         '''

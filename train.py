@@ -210,15 +210,18 @@ if __name__ == '__main__':
             for i, batch in enumerate(dataset):
                 x, y = batch
                 x = x.to(device)
-                embeddings, atts = model(x, ret_att=True, sampling=False)
-                embeddings = embeddings.view(embeddings.size(0), args.att_heads, -1)
+                out, atts = model(x, ret_att=True, sampling=True)
+                a_indices, anchors, positives, negatives, _ = out
+                anchors = anchors.view(anchors.size(0), args.att_heads, -1)
+                positives = positives.view(positives.size(0), args.att_heads, -1)
+                negaitves = negatives.view(negatives.size(0), args.att_heads, -1)
 
                 if args.cycle:
                     lr, mom = one_cycle.calc()
                     update_lr(optimizer, lr)
                     update_mom(optimizer, mom)
                 optimizer.zero_grad()
-                l_div, l_homo, l_heter = criterion.loss_func(embeddings, args.batch_k)
+                l_div, l_homo, l_heter = criterion.criterion(anchors, positives, negatives)
                 l = (l_div + l_homo + l_heter) / x.size(0)
                 l.backward()
                 optimizer.step()
