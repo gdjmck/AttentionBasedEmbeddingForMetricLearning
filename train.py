@@ -113,11 +113,13 @@ def find_lr(init_value = 1e-8, final_value=10., beta = 0.98):
         inputs, labels = data
         inputs = inputs.to(device)
         optimizer.zero_grad()
-        embeddings = model(inputs, sampling=False)
-        embeddings = embeddings.view((-1, model.att_heads, int(512/model.att_heads)))
+        a_indices, anchors, positives, negatives, _ = model(inputs)
+        anchors = anchors.view(anchors.size(0), args.att_heads, -1)
+        positives = positives.view(positives.size(0), args.att_heads, -1)
+        negaitves = negatives.view(negatives.size(0), args.att_heads, -1)
 
-        l_div, l_homo, l_heter = criterion.loss_func(embeddings, args.batch_k)
-        loss = (l_div + l_homo + l_heter) / inputs.size(0)
+        l_div, l_homo, l_heter = criterion.criterion(anchors, positives, negatives)
+        loss = l_div + l_homo + l_heter
         #Compute the smoothed loss
         avg_loss = beta * avg_loss + (1-beta) *loss.item()
         smoothed_loss = avg_loss / (1 - beta**batch_num)
@@ -246,7 +248,7 @@ if __name__ == '__main__':
             loss_heter /= (i+1)
             loss_div /= (i+1)
             print('Epoch %d batches %d\tdiv:%.4f\thomo:%.4f\theter:%.4f'%(epoch, i+1, loss_div, loss_homo, loss_heter))
-            writer.add_scalars({'Train_homo', loss_homo, 'Train_heter': loss_heter, 'Train_div': loss_div},
+            writer.add_scalars({'Train_homo': loss_homo, 'Train_heter': loss_heter, 'Train_div': loss_div},
                                 global_step=epoch)
 
             if (loss_homo+loss_heter+loss_div) < best_performace:

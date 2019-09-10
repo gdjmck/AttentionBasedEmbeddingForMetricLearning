@@ -30,15 +30,18 @@ def loss_func(tensor, batch_k):
         for i in range(batch_size):
                 loss_div += L_divergence(tensor[i, ...])
 
+        cnt_homo, cnt_heter = 0, 0
         for group_index in range(batch_size // batch_k):
                 for i in range(batch_k):
                         anchor = tensor[i+group_index*batch_k: 1+i+group_index*batch_k, ...]
                         for j in range(i+1, batch_k):
                                 index = j+group_index*batch_k
                                 loss_homo += L_metric(anchor, tensor[index: 1+index, ...])
+                                cnt_homo += 1
                         for j in range((group_index+1)*batch_k, batch_size):
                                 loss_heter += L_metric(anchor, tensor[j:j+1, ...], same_class=False)
-        return loss_div/(tensor.size(1)-1), loss_homo/(batch_k-1), loss_heter/(batch_size-batch_k)   
+                                cnt_heter += 1
+        return loss_div/batch_size, loss_homo/(cnt_homo*tensor.size(1)), loss_heter/(cnt_heter*tensor.size(1))   
 
 def criterion(anchors, positives, negatives):
         loss_homo = L_metric(anchors, positives)
