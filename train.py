@@ -222,7 +222,7 @@ if __name__ == '__main__':
                     update_mom(optimizer, mom)
                 optimizer.zero_grad()
                 l_div, l_homo, l_heter = criterion.criterion(anchors, positives, negatives)
-                l = (l_div + l_homo + l_heter) / x.size(0)
+                l = l_div + l_homo + l_heter
                 l.backward()
                 optimizer.step()
 
@@ -246,6 +246,8 @@ if __name__ == '__main__':
             loss_heter /= (i+1)
             loss_div /= (i+1)
             print('Epoch %d batches %d\tdiv:%.4f\thomo:%.4f\theter:%.4f'%(epoch, i+1, loss_div, loss_homo, loss_heter))
+            writer.add_scalars({'Train_homo', loss_homo, 'Train_heter': loss_heter, 'Train_div': loss_div},
+                                global_step=epoch)
 
             if (loss_homo+loss_heter+loss_div) < best_performace:
                 best_performace = loss_homo + loss_heter + loss_div
@@ -271,6 +273,8 @@ if __name__ == '__main__':
                 loss_div += l_div.item()
             print('\tTest phase\tloss div: %.4f (%.3f)\tloss homo: %.4f (%.3f)\tloss heter: %.4f (%.3f)'%\
                 (i, l_div.item(), loss_div/(i+1), l_homo.item(), loss_homo/(i+1), l_heter.item(), loss_heter/(i+1)))
+            writer.add_scalars({'Val_homo': loss_homo/(i+1), 'Val_heter': loss_heter/(i+1), 'Val_div': loss_div/(i+1)},
+                                global_step=epoch)
 
     except KeyboardInterrupt:
         if os.path.isfile(args.ckpt):
