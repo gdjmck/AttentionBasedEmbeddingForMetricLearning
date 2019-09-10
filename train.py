@@ -116,7 +116,7 @@ def find_lr(init_value = 1e-8, final_value=10., beta = 0.98):
         a_indices, anchors, positives, negatives, _ = model(inputs)
         anchors = anchors.view(anchors.size(0), args.att_heads, -1)
         positives = positives.view(positives.size(0), args.att_heads, -1)
-        negaitves = negatives.view(negatives.size(0), args.att_heads, -1)
+        negatives = negatives.view(negatives.size(0), args.att_heads, -1)
 
         l_div, l_homo, l_heter = criterion.criterion(anchors, positives, negatives)
         loss = l_div + l_homo + l_heter
@@ -216,7 +216,7 @@ if __name__ == '__main__':
                 a_indices, anchors, positives, negatives, _ = out
                 anchors = anchors.view(anchors.size(0), args.att_heads, -1)
                 positives = positives.view(positives.size(0), args.att_heads, -1)
-                negaitves = negatives.view(negatives.size(0), args.att_heads, -1)
+                negatives = negatives.view(negatives.size(0), args.att_heads, -1)
 
                 if args.cycle:
                     lr, mom = one_cycle.calc()
@@ -248,7 +248,7 @@ if __name__ == '__main__':
             loss_heter /= (i+1)
             loss_div /= (i+1)
             print('Epoch %d batches %d\tdiv:%.4f\thomo:%.4f\theter:%.4f'%(epoch, i+1, loss_div, loss_homo, loss_heter))
-            writer.add_scalars({'Train_homo': loss_homo, 'Train_heter': loss_heter, 'Train_div': loss_div},
+            writer.add_scalars(main_tag='Train', tag_scalar_dict={'homo': loss_homo, 'heter': loss_heter, 'div': loss_div},
                                 global_step=epoch)
 
             if (loss_homo+loss_heter+loss_div) < best_performace:
@@ -273,9 +273,9 @@ if __name__ == '__main__':
                 loss_homo += l_homo.item()
                 loss_heter += l_heter.item()
                 loss_div += l_div.item()
-            print('\tTest phase\tloss div: %.4f (%.3f)\tloss homo: %.4f (%.3f)\tloss heter: %.4f (%.3f)'%\
+            print('\tTest phase %d samples\tloss div: %.4f (%.3f)\tloss homo: %.4f (%.3f)\tloss heter: %.4f (%.3f)'%\
                 (i, l_div.item(), loss_div/(i+1), l_homo.item(), loss_homo/(i+1), l_heter.item(), loss_heter/(i+1)))
-            writer.add_scalars({'Val_homo': loss_homo/(i+1), 'Val_heter': loss_heter/(i+1), 'Val_div': loss_div/(i+1)},
+            writer.add_scalars(main_tag='Val', tag_scalar_dict={'homo': loss_homo/(i+1), 'heter': loss_heter/(i+1), 'div': loss_div/(i+1)},
                                 global_step=epoch)
 
     except KeyboardInterrupt:
