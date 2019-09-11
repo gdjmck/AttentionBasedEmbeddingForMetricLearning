@@ -1,5 +1,8 @@
 import math
 
+def get_lr(optimizer):
+    return optimizer.param_groups[0]['lr']
+
 def update_lr(optimizer, lr):
     for g in optimizer.param_groups:
         g['lr'] = lr
