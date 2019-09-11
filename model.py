@@ -21,7 +21,7 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         self.att_heads = att_heads
         self.out_dim = int(512 / self.att_heads)
         self.att_depth = 480
-        self.att = nn.ModuleList([nn.Sequential(nn.Conv2d(in_channels=832, out_channels=self.att_depth, kernel_size=1), nn.Sigmoid()) for i in range(att_heads)])
+        self.att = nn.ModuleList([nn.Conv2d(in_channels=832, out_channels=self.att_depth, kernel_size=1) for i in range(att_heads)])
         self.last_fc = nn.Linear(1024, self.out_dim)
 
         self.sampled = DistanceWeightedSampling(batch_k=batch_k, normalize=normalize)
@@ -90,14 +90,12 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         att_input = self.a4_to_e4(sp)
         atts = [self.att[i](att_input) for i in range(self.att_heads)] # (N, att_heads, depth, H, W)
         # Normalize attention map
-        '''
-        N, _, D, H, W = atts.size()
-        atts = atts.view(-1, H*W) # (N*att_heads*depth, H*W)
-        att_max, _ = atts.max(dim=1, keepdim=True) # (N*att_heads*depth, 1)
-        att_min, _ = atts.min(dim=1, keepdim=True) # (N*att_heads*depth, 1)
-        atts = (atts - att_min) / (att_max - att_min) # (N*depth, H*W)
-        atts = atts.view(N, -1, D, H, W)
-        '''
+        for i in range(len(atts)):
+            N, D, H, W = atts[i].size()
+            att = atts[i].view(-1, H*W)
+            att_max, _ = att.max(dim=1, keepdim=True)
+            att_min, _ = att.min(dim=1, keepdim=True)
+            atts[i] = ((att - att_min) / (att_max - att_min)).view(N, D, H, W)
 
         embedding = torch.cat([self.feat_global(atts[i]*sp).unsqueeze(1) for i in range(self.att_heads)], 1)
         #print('embedding in forward:', embedding.shape)
