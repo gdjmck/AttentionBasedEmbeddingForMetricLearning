@@ -13,7 +13,7 @@ import torchvision
 import torchvision.transforms as transforms
 import torchnet
 import torch.backends.cudnn as cudnn
-from OneCycle import OneCycle, update_lr, update_mom
+from OneCycle import OneCycle, update_lr, update_mom, get_lr
 from tensorboardX import SummaryWriter
 from PIL import Image
 from sampler import BalancedBatchSampler
@@ -232,7 +232,7 @@ if __name__ == '__main__':
                 loss_heter += l_heter.item()
                 loss_div += l_div.item()
                 if i % 100 == 0:
-                    print('LR:', lr)
+                    print('LR:', get_lr(optimizer))
                     print('\tBatch %d\tloss div: %.4f (%.3f)\tloss homo: %.4f (%.3f)\tloss heter: %.4f (%.3f)'%\
                         (i, l_div.item(), loss_div/(i+1), l_homo.item(), loss_homo/(i+1), l_heter.item(), loss_heter/(i+1)))
                 if i % 1000 == 0:
