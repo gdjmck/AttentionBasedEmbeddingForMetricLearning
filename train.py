@@ -93,7 +93,7 @@ else:
     best_performace = np.Inf
 model = model.to(device)
 optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.95, weight_decay=1e-4)
-one_cycle = OneCycle( int(len(dataset)*(args.epochs-args.epoch_start)/args.batch), max_lr=args.lr, 
+one_cycle = OneCycle( int(len(dataset)*(args.epochs-args.epoch_start)/args.batch), max_lr=args.lr, div=int(args.lr*1e4), 
                         prcnt=(args.epochs-82)*100/args.epochs, momentum_vals=(0.95, 0.8))
 
 
@@ -232,6 +232,7 @@ if __name__ == '__main__':
                 loss_heter += l_heter.item()
                 loss_div += l_div.item()
                 if i % 100 == 0:
+                    print('LR:', lr)
                     print('\tBatch %d\tloss div: %.4f (%.3f)\tloss homo: %.4f (%.3f)\tloss heter: %.4f (%.3f)'%\
                         (i, l_div.item(), loss_div/(i+1), l_homo.item(), loss_homo/(i+1), l_heter.item(), loss_heter/(i+1)))
                 if i % 1000 == 0:
@@ -241,8 +242,8 @@ if __name__ == '__main__':
                     assert img_inv.shape == x.shape
                     writer.add_images('img', img_inv, global_step=step)
                     for ai in range(model.att_heads):
-                        writer.add_images('avg_attention %d'%ai, atts[:, ai, ...].mean(dim=1, keepdim=True))
-                        writer.add_images('attention %d'%ai, atts[:, ai, 0:1, ...], global_step=step)
+                        writer.add_images('avg_attention %d'%ai, atts[ai].mean(dim=1, keepdim=True))
+                        writer.add_images('attention %d'%ai, atts[ai][:, 0:1, ...], global_step=step)
                     step += 1
             loss_homo /= (i+1)
             loss_heter /= (i+1)
