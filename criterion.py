@@ -41,7 +41,7 @@ def loss_func(tensor, batch_k):
                         for j in range((group_index+1)*batch_k, batch_size):
                                 loss_heter += L_metric(anchor, tensor[j:j+1, ...], same_class=False)
                                 cnt_heter += 1
-        return loss_div/batch_size, loss_homo/(cnt_homo*tensor.size(1)), loss_heter/(cnt_heter*tensor.size(1))   
+        return loss_div/batch_size, loss_homo/cnt_homo, loss_heter/cnt_heter   
 
 def criterion(anchors, positives, negatives):
         loss_homo = L_metric(anchors, positives)
