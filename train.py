@@ -267,7 +267,8 @@ if __name__ == '__main__':
             for i, batch in enumerate(dataset_test):
                 x, y = batch
                 x = x.to(device)
-                embeddings, atts = model(x, ret_att=True, sampling=False)
+                with torch.no_grad():
+                    embeddings, atts = model(x, ret_att=True, sampling=False)
                 embeddings = embeddings.view(embeddings.size(0), args.att_heads, -1)
 
                 l_div, l_homo, l_heter = criterion.loss_func(embeddings, args.batch_k)

@@ -21,7 +21,7 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         self.att_heads = att_heads
         self.out_dim = int(512 / self.att_heads)
         self.att_depth = 480
-        self.att = nn.ModuleList([nn.Conv2d(in_channels=832, out_channels=self.att_depth, kernel_size=1) for i in range(att_heads)])
+        self.att = nn.ModuleList([nn.Conv2d(in_channels=832, out_channels=self.att_depth, kernel_size=1, bias=False) for i in range(att_heads)])
         self.last_fc = nn.Linear(1024, self.out_dim)
 
         self.sampled = DistanceWeightedSampling(batch_k=batch_k, normalize=normalize)
@@ -66,7 +66,7 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         # N x 1024
         x = self.last_fc(x)
         # N x (512/M)
-        #x = F.normalize(x)
+        x = F.normalize(x)
         return x
 
     def a4_to_e4(self, x):
