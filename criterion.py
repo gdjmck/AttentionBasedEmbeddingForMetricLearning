@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 
 def L_metric(feat1, feat2, same_class=True):
@@ -69,3 +70,23 @@ def cluster_centroid_loss(cluster_a, cluster_b, margin=1):
                 min=0.
         )
         return loss_a + loss_b
+
+class CenterLoss(nn.Module):
+        def __init__(self, num_classes=196, feat_dim=512, beta=0.05, use_gpu=True):
+                super(CenterLoss, self).__init__()
+                self.num_classes = num_classes
+                self.feat_dim = feat_dim
+                self.beta = beta
+                self.use_gpu = use_gpu
+                self.criterion = nn.MSELoss()
+
+                if use_gpu:
+                        self.centers = nn.Parameter(torch.zeros(self.num_classes, self.feat_dim).cuda())
+                else:
+                        self.centers = nn.Parameter(torch.zeros(self.num_classes, self.feat_dim))
+
+        def forward(self, x, labels):
+                loss = self.criterion(x, self.centers[labels])
+                self.centers[labels] += beta * (x.detach() - self.centers[labels])
+
+                return loss

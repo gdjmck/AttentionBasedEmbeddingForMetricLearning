@@ -205,6 +205,7 @@ if __name__ == '__main__':
         sys.exit()
 
     try:
+        center_loss = criterion.CenterLoss(use_gpu=args.gpu_ids)
         for epoch in range(start_epoch, args.epochs):
             model.train()
 
@@ -223,14 +224,18 @@ if __name__ == '__main__':
                     update_lr(optimizer, lr)
                     update_mom(optimizer, mom)
                 optimizer.zero_grad()
+                l_centers = center_loss(anchors, a_indices)
                 l_div, l_homo, l_heter = criterion.criterion(anchors, positives, negatives)
-                l = l_div + l_homo + l_heter
+                l = l_div + l_homo + l_heter + l_centers
                 l.backward()
                 optimizer.step()
 
                 loss_homo += l_homo.item()
                 loss_heter += l_heter.item()
                 loss_div += l_div.item()
+                loss_center += l_centers.item()
+                writer.add_scalars(main_tag='TrainLog', tag_scalar_dict={'homo': l_homo.item(), 'heter': l_heter.item(), 'div': l_div.item(), 'center': l_centers.item()},
+                                    global_step=step)
                 if i % 100 == 0:
                     print('LR:', get_lr(optimizer))
                     print('\tBatch %d\tloss div: %.4f (%.3f)\tloss homo: %.4f (%.3f)\tloss heter: %.4f (%.3f)'%\
