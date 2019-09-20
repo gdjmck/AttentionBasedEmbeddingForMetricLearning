@@ -87,6 +87,6 @@ class CenterLoss(nn.Module):
 
         def forward(self, x, labels):
                 loss = self.criterion(x, self.centers[labels])
-                self.centers[labels] += beta * (x.detach() - self.centers[labels])
+                self.centers[labels].add_(self.beta * (x.detach() - self.centers[labels]))
 
                 return loss

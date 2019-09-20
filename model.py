@@ -170,9 +170,9 @@ class   DistanceWeightedSampling(nn.Module):
             block_idx = i // k
 
             if weights_sum[i] != 0:
-                n_indices +=  np.random.choice(n, (block_idx+1)*k-i-1, p=np_weights[i]).tolist()
+                n_indices +=  np.random.choice(n, block_idx*k, p=np_weights[i]).tolist()
             else:
-                n_indices +=  np.random.choice(n, k-1, p=mask_uniform_probs[i]).tolist()
+                n_indices +=  np.random.choice(n, block_idx*k, p=mask_uniform_probs[i]).tolist()
             for j in range(block_idx*k, (block_idx + 1)*k):
                 if j != i:
                     a_indices.append(i)

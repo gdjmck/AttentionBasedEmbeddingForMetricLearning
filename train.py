@@ -209,12 +209,13 @@ if __name__ == '__main__':
         for epoch in range(start_epoch, args.epochs):
             model.train()
 
-            loss_div, loss_homo, loss_heter = 0, 0, 0
+            loss_div, loss_homo, loss_heter, loss_center = 0, 0, 0, 0
             for i, batch in enumerate(dataset):
                 x, y = batch
                 x = x.to(device)
                 out, atts = model(x, ret_att=True, sampling=True)
                 a_indices, anchors, positives, negatives, _ = out
+                l_centers = center_loss(anchors, a_indices)
                 anchors = anchors.view(anchors.size(0), args.att_heads, -1)
                 positives = positives.view(positives.size(0), args.att_heads, -1)
                 negatives = negatives.view(negatives.size(0), args.att_heads, -1)
@@ -224,7 +225,6 @@ if __name__ == '__main__':
                     update_lr(optimizer, lr)
                     update_mom(optimizer, mom)
                 optimizer.zero_grad()
-                l_centers = center_loss(anchors, a_indices)
                 l_div, l_homo, l_heter = criterion.criterion(anchors, positives, negatives)
                 l = l_div + l_homo + l_heter + l_centers
                 l.backward()
