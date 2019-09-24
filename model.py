@@ -22,6 +22,7 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         self.out_dim = int(512 / self.att_heads)
         self.att_depth = 480
         self.att = nn.ModuleList([nn.Conv2d(in_channels=832, out_channels=self.att_depth, kernel_size=1, bias=False) for i in range(att_heads)])
+        self.batch_norm = nn.ModuleList([nn.BatchNorm2d(self.att_depth) for i in range(att_heads)])
         self.last_fc = nn.Linear(1024, self.out_dim)
 
         self.sampled = DistanceWeightedSampling(batch_k=batch_k, normalize=normalize)
@@ -97,7 +98,7 @@ class MetricLearner(GoogLeNet.GoogLeNet):
             att_min, _ = att.min(dim=1, keepdim=True)
             atts[i] = ((att - att_min) / (att_max - att_min)).view(N, D, H, W)
 
-        embedding = torch.cat([self.feat_global(atts[i]*sp).unsqueeze(1) for i in range(self.att_heads)], 1)
+        embedding = torch.cat([self.feat_global(self.batch_norm[i](atts[i]*sp)).unsqueeze(1) for i in range(self.att_heads)], 1)
         #print('embedding in forward:', embedding.shape)
         embedding = torch.flatten(embedding, 1)
         if sampling:
