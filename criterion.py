@@ -90,3 +90,15 @@ class CenterLoss(nn.Module):
                 self.centers[labels].add_(self.beta * (x.detach() - self.centers[labels]))
 
                 return loss
+
+def regularization(model, layer_names):
+    assert type(layer_names) == list
+    loss = 0.
+    cnt = 0
+    for layer in layer_names:
+        for n, p in getattr(model, layer).named_parameters():
+            if 'bias' in n:
+                continue
+            loss += p.data.norm()**2 / p.data.numel()
+            cnt += 1
+    return loss / cnt
