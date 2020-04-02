@@ -12,6 +12,8 @@ def loader_test(fn):
 
 if __name__ == '__main__':
     args = train.args
+    att_heads = args.att_heads
+    batchsize = args.batch
     model = train.model
     model.eval()
 
@@ -19,20 +21,24 @@ if __name__ == '__main__':
     # print('class to idx:', data.class_to_idx)
     # print(len(data.targets), data.targets)
 
-    dataset = torch.utils.data.DataLoader(data)
+    dataset = torch.utils.data.DataLoader(data, batch_size=batchsize)
+    #dataset = [torch.load('../AttentionEmbedding/ckpt_4head/best_performance.pth')['data']]
     embeddings = {}
     with torch.no_grad():
-        for i, (img, label) in enumerate(dataset):
-            label = label.numpy()[0]
-            print(label)
-            assert label == data.targets[i]
+        for (img, label) in dataset:
             img = img.to(train.device)
-            embedding = model(img, sampling=False).cpu().numpy()
-            if label not in embeddings.keys():
-                embeddings[label] = [embedding]
-            else:
-                embeddings[label].append(embedding)
+            embedding = model(img, sampling=False)
+            embedding = embedding.view(batchsize, att_heads, -1)
+            embedding = train.F.normalize(embedding, 2, -1)
+            embedding = embedding.view(-1, 512).cpu().numpy()
+            for i, l in enumerate(label):
+                l = l.item()
+                #print(embedding.shape)
+                if l not in embeddings.keys():
+                    embeddings[l] = [embedding[i: i+1, ...]]
+                else:
+                    embeddings[l].append(embedding[i: i+1, ...])
         
     with open(args.ckpt.rsplit('/', 1)[0] + '/embeddings_cars196_epoch%s.pkl'%args.ckpt.rsplit('/', 1)[-1].split('_')[0], 'wb') as f:
         pickle.dump(embeddings, f)
-        print('saved embedding.')        
+        print('saved embedding.')

@@ -5,6 +5,7 @@ import numpy as np
 import torchvision.models as models
 import GoogLeNet
 import os
+import util
 
 class MetricLearner(GoogLeNet.GoogLeNet):
     def __init__(self, att_heads=8, pretrain=None, batch_k=5, normalize=False):
@@ -21,8 +22,9 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         self.att_heads = att_heads
         self.out_dim = int(512 / self.att_heads)
         self.att_depth = 480
-        self.att = nn.ModuleList([nn.Conv2d(in_channels=832, out_channels=self.att_depth, kernel_size=1) for i in range(att_heads)])
-        self.batch_norm = nn.BatchNorm2d(self.att_depth)
+        self.att = nn.Conv2d(in_channels=832, out_channels=self.att_depth*self.att_heads, kernel_size=1, bias=False)
+        #self.last_pooling = nn.MaxPool2d(7)
+        self.last_pooling = nn.AvgPool2d(7)
         self.last_fc = nn.Linear(1024, self.out_dim)
 
         self.sampled = DistanceWeightedSampling(batch_k=batch_k, normalize=normalize)
@@ -59,7 +61,7 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         x = self.inception5b(x)
         # N x 1024 x 7 x 7
 
-        x = self.avgpool(x)
+        x = self.last_pooling(x) # major diff from avg pool to max pool of size (7, 7)
         # N x 1024 x 1 x 1
         x = torch.flatten(x, 1)
         # N x 1024
@@ -67,7 +69,7 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         # N x 1024
         x = self.last_fc(x)
         # N x (512/M)
-        x = F.normalize(x)
+        #x = F.normalize(x)
         return x
 
     def a4_to_e4(self, x):
@@ -81,28 +83,29 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         d4 = self.inception4d(c4)
         # N x 528 x 14 x 14
         e4 = self.inception4e(d4)
-        # N x 832 x 14 x 14      
+        # N x 832 x 14 x 14
         return e4
 
     def forward(self, x, ret_att=False, sampling=False):
+        batchsize = x.size(0)
         # N x 3 x 224 x 224
         sp = self.feat_spatial(x)
-        # output of pool3
-        att_input = self.a4_to_e4(sp)
-        atts = [torch.sigmoid(self.batch_norm(self.att[i](att_input))) for i in range(self.att_heads)] # (N, att_heads, depth, H, W)
-        # Normalize attention map
-        '''
-        for i in range(len(atts)):
-            N, D, H, W = atts[i].size()
-            att = atts[i].view(-1, H*W)
-            att_max, _ = att.max(dim=1, keepdim=True)
-            att_min, _ = att.min(dim=1, keepdim=True)
-            atts[i] = ((att - att_min) / (att_max - att_min)).view(N, D, H, W)
-        '''
-
-        embedding = torch.cat([self.feat_global(atts[i]*sp).unsqueeze(1) for i in range(self.att_heads)], 1)
-        #print('embedding in forward:', embedding.shape)
-        embedding = torch.flatten(embedding, 1)
+        # N x 480 x 28 x 28
+        att_input = self.a4_to_e4(sp).detach()
+        # print('attend to:', sp.size())
+        atts = torch.sigmoid(self.att(att_input)) # att_heads * (N, depth, H, W)
+        #print('raw atts:', atts.size())
+        atts = atts.view(batchsize, self.att_heads, self.att_depth, sp.size(2), sp.size(3))
+        #print('atts:', atts.size())
+        sp_att = atts * sp.unsqueeze(1)
+        #print('sp_att raw:', sp_att.size())
+        # move attention dimension to batchsize dimension
+        sp_att = sp_att.view(-1, sp.size(1), sp.size(2), sp.size(3))
+        #print('sp_att:', sp_att.size())
+        embedding = self.feat_global(sp_att)
+        # print('embedding in forward:', embedding.shape)
+        embedding = embedding.view(batchsize, -1)
+        #embedding = torch.flatten(embedding, 1)
         if sampling:
             return self.sampled(embedding) if not ret_att else (self.sampled(embedding), atts)
         else:
@@ -124,8 +127,7 @@ def get_distance(x):
     dist = dist.sqrt()
     return dist
 
-class   DistanceWeightedSampling(nn.Module):
-
+class DistanceWeightedSampling(nn.Module):
     def __init__(self, batch_k, cutoff=0.5, nonzero_loss_cutoff=1.4, normalize =False,  **kwargs):
         super(DistanceWeightedSampling,self).__init__()
         self.batch_k = batch_k
@@ -190,6 +192,11 @@ if __name__ == '__main__':
     import numpy as np
     import sys
     model = MetricLearner()
+    # try single forward
+    input_tensor = torch.randn(2, 3, 224, 224)
+    output = model(input_tensor)
+    print('output:', output.size())
+    exit(0)
     for n, p in model.named_parameters():
         print(n, p.data.mean(), p.data.var())
     print('\n=========================================\n')

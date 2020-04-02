@@ -7,6 +7,7 @@ from PIL import Image
 from scipy.special import comb
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
+from util import merge_sequential_blanks
 
 mean, std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
 
@@ -27,6 +28,51 @@ class ImageFolderWithName(datasets.ImageFolder):
             return img, label
         else:
             return img, label, self.imgs[i]
+
+class InShop(torch.utils.data.Dataset):
+    def __init__(self, root, anno_file, mode='train', transform=transforms.Compose([
+                                        transforms.ColorJitter(0.2, 0.1, 0.1, 0.1),
+                                        transforms.Resize(235),
+                                        transforms.RandomCrop((224, 224)),
+                                        transforms.RandomHorizontalFlip(),
+                                        transforms.ToTensor(),
+                                        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                        std=[0.229, 0.224, 0.225])])):
+        super(InShop, self).__init__()
+        self.name = 'in_shop'
+        self.mode = 'train' if mode == 'train' else 'test'
+        self.root = root
+        self.transform = transform
+        self.list = []
+        assert os.path.exists(anno_file)
+        assert anno_file.endswith('.txt')
+        with open(anno_file, 'r') as f:
+            data = f.read()
+        data = data.split('\n')[2:]
+        for line in data:
+            if self.mode not in line:
+                continue
+            self.list.append(merge_sequential_blanks(line).split(' ')[0]) # root + this = full path of image file
+
+    def __len__(self):
+        return len(self.list)
+
+    def get_attributes(self, fn):
+        attrs = fn.split('/')
+        return attrs[1], attrs[2], attrs[3] # gender, type, id
+
+    def __getitem__(self, index):
+        filename = self.list[index]
+        gender, type_, id_ = self.get_attributes(filename)
+        # id are all of size 11
+        assert len(id_) == 11
+        
+        img = Image.open(filename)
+        img = self.transform(img)
+        return img, id_
+
+
+
 
 class MetricData(torch.utils.data.Dataset):
     def __init__(self, data_root, anno_file, idx_file, return_fn=False):

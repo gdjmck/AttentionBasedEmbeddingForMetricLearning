@@ -1,6 +1,24 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
+import time
+import logging
+import re
+
+def merge_sequential_blanks(string):
+    return re.sub(' +', ' ', string.strip(' '))
+
+def timer(fn):
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        result = fn(*args, **kwargs)
+        print('{} {} {:.3f}s'.format(fn.__module__, fn.__name__, time.time() - start))
+        return result
+
+    wrapper.__name__ = fn.__name__
+    wrapper.__module__ = fn.__module__
+    return wrapper
+
 
 def plot_grad_flow(named_parameters):
     ave_grads = []

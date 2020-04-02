@@ -2,32 +2,57 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+eps = 1e-4
+m_c = 1 # threshold for different class metric
+
+def L2_squared(x1, x2):
+    '''
+        both x1, x2 of shape: (b, n)
+    '''
+    return (x1-x2).pow(2).sum(1)
+
 def L_metric(feat1, feat2, same_class=True):
     '''
         feat1 same size as feat2
         feat size: (batch_size, atts, feat_size)
     '''
-    d = torch.sum((feat1 - feat2).pow(2).view((-1, feat1.size(-1))), 1)
+    b, a, f = feat1.size()
+    feat1 = feat1.view((b*a, f))
+    feat2 = feat2.view((b*a, f))
+    
+    d = L2_squared(feat1, feat2)
     if same_class:
-        return d.sum() / d.size(0)
+        return d.sum()
     else:
-        return torch.clamp(1-d, min=0).sum() / d.size(0)
+        # 因为在测试集上不同class的metric的L2距离也小于1
+        d_heter = torch.clamp(m_c-d, min=0)
+        feat1_length = torch.clamp(feat1.pow(2).sum(1) - 1, min=0)
+        feat2_length = torch.clamp(feat2.pow(2).sum(1) - 1, min=0)
+
+        return ((1 + feat1_length * feat2_length) * d_heter).sum()
 
 def L_divergence(feats):
+    '''
+        feats: metric of same image with different attention
+        feats size: (atts, n)
+    '''
     n = feats.shape[0]
     loss = 0
     cnt = 0
     for i in range(n):
         for j in range(i+1, n):
-            loss += torch.clamp(1-torch.sum((feats[i, :] - feats[j, :]).pow(2)), min=0)
+            l_div = torch.clamp(1-L2_squared(feats[i:i+1, :], feats[j:j+1, :]), min=0)
+            loss += l_div
             cnt += 1
-    return loss / cnt
+    # no average op refer to the paper
+    return loss
 
 def loss_func(tensor, batch_k):
         batch_size = tensor.size(0)
         assert batch_size % batch_k == 0
         assert batch_k > 1
-        loss_homo, loss_heter, loss_div = 0, 0, 0
+        loss_homo, loss_heter, loss_div = tensor.new(1).zero_(), tensor.new(1).zero_(), tensor.new(1).zero_()
+        # divergence loss
         for i in range(batch_size):
                 loss_div += L_divergence(tensor[i, ...])
 
@@ -42,7 +67,7 @@ def loss_func(tensor, batch_k):
                         for j in range((group_index+1)*batch_k, batch_size):
                                 loss_heter += L_metric(anchor, tensor[j:j+1, ...], same_class=False)
                                 cnt_heter += 1
-        return loss_div/batch_size, loss_homo/cnt_homo, loss_heter/cnt_heter   
+        return loss_div, loss_homo/cnt_homo, loss_heter/cnt_heter
 
 def criterion(anchors, positives, negatives):
         loss_homo = L_metric(anchors, positives)
@@ -102,3 +127,11 @@ def regularization(model, layer_names):
             loss += p.data.norm()**2 / p.data.numel()
             cnt += 1
     return loss / cnt
+
+
+if __name__ == '__main__':
+        a = torch.randn(2, 3)
+        b = torch.randn(2, 3)
+        print('a&b:', a.size())
+        print(L2_squared(a, b).size())
+        print(a, torch.exp(a))
