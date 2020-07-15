@@ -29,7 +29,8 @@ def L_metric(feat1, feat2, same_class=True):
         feat1_length = torch.clamp(feat1.pow(2).sum(1) - 1, min=0)
         feat2_length = torch.clamp(feat2.pow(2).sum(1) - 1, min=0)
 
-        return ((1 + feat1_length * feat2_length) * d_heter).sum()
+        #return ((1 + feat1_length * feat2_length) * d_heter).sum()
+        return d_heter.sum()
 
 def L_divergence(feats):
     '''
@@ -45,7 +46,7 @@ def L_divergence(feats):
             loss += l_div
             cnt += 1
     # no average op refer to the paper
-    return loss
+    return loss / cnt if type(loss) is torch.Tensor else feats.new([0])
 
 def loss_func(tensor, batch_k):
         batch_size = tensor.size(0)
@@ -67,7 +68,7 @@ def loss_func(tensor, batch_k):
                         for j in range((group_index+1)*batch_k, batch_size):
                                 loss_heter += L_metric(anchor, tensor[j:j+1, ...], same_class=False)
                                 cnt_heter += 1
-        return loss_div, loss_homo/cnt_homo, loss_heter/cnt_heter
+        return loss_div / batch_size, loss_homo/cnt_homo, loss_heter/cnt_heter
 
 def criterion(anchors, positives, negatives):
         loss_homo = L_metric(anchors, positives)
@@ -127,6 +128,13 @@ def regularization(model, layer_names):
             loss += p.data.norm()**2 / p.data.numel()
             cnt += 1
     return loss / cnt
+
+def exclusion_loss(att):
+        att_size = att.size()
+        att = att.view((-1, att_size[-1]*att_size[-2])
+        att_transformed = (att - 0.5).abs()
+        loss = torch.exp(-1*att_transformed.sum(1))
+        return loss.mean()
 
 
 if __name__ == '__main__':

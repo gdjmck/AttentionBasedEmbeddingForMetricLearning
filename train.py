@@ -80,7 +80,8 @@ else:
     print('Using CPU only.')
 
 #dataset_test = torch.utils.data.DataLoader(data_test, batch_sampler=BalancedBatchSampler(data_test, batch_size=args.batch, batch_k=args.batch_k, length=args.num_batch//2))
-model = MetricLearner(pretrain=args.pretrain, normalize=True, batch_k=args.batch_k, att_heads=args.att_heads)
+use_att = args.att_heads > 1
+model = MetricLearner(pretrain=args.pretrain, normalize=True, batch_k=args.batch_k, att_heads=args.att_heads, use_att=use_att)
 reg_params = ['inception4a', 'inception4b', 'inception4c', 'inception4d', 'inception4e']
 if not os.path.exists(args.ckpt):
     os.makedirs(args.ckpt)
@@ -102,9 +103,7 @@ else:
     best_performance = np.Inf
 model = model.to(device)
 #summary(model, (3, 224, 224))
-non_att_params = [p for n, p in model.named_parameters() if 'att' not in n]
-optimizer = torch.optim.SGD(non_att_params, lr=args.lr, momentum=0.95, weight_decay=1e-4)
-optimizer_att = torch.optim.SGD(model.att.parameters(), lr=0.5*args.lr, momentum=0.95, weight_decay=1e-4)
+optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.95, weight_decay=1e-4)
 
 
 
@@ -184,7 +183,13 @@ if __name__ == '__main__':
                 x = x.to(device)
 
                 forward_time = time.time()
-                embeddings, atts = model(x, sampling=sampling, ret_att=True)
+                ret = model(x, sampling=sampling, ret_att=True)
+                if use_att:
+                    embeddings, atts = ret
+                    atts_regularizer = criterion.exclusion_loss(atts)
+                    print('criterion_loss: ', atts_regularizer.item())
+                else:
+                    embeddings = ret
                 forward_time = time.time() - forward_time
                 if sampling:
                     _, anchors, positives, negatives, _ = embeddings
@@ -203,27 +208,15 @@ if __name__ == '__main__':
                 else:
                     l_div, l_homo, l_heter = criterion.loss_func(embeddings, args.batch_k)
                 l_metric = l_homo + l_heter
+                if use_att:
+                    l_metric += l_div
                 loss_time = time.time() - loss_time
                 #l_reg = lambda_reg * criterion.regularization(model, reg_params)
                 #l_reg = torch.Tensor([0])
-                backward_time = time.time()
                 optimizer.zero_grad()
                 l_metric.backward(retain_graph=True)
-                backward_time = time.time() - backward_time
 
-                optimize_time = time.time()
                 optimizer.step()
-                optimize_time = time.time() - optimize_time
-
-                backward_time -= time.time()
-                # 先关掉att的optimize，现在看起来还可以att
-                optimizer_att.zero_grad()
-                l_div.backward()
-                backward_time += time.time()
-
-                optimize_time -= time.time()
-                optimizer_att.step()
-                optimize_time += time.time()
 
                 #print('metric att:', torch.Tensor([var.grad.abs().mean() for var in model.att.parameters() if var.requires_grad]).mean())
 
@@ -235,17 +228,16 @@ if __name__ == '__main__':
                 total_time = time.time() - ticktime
                 writer.add_scalars(main_tag='TrainLog', tag_scalar_dict={'homo': l_homo.item(), 'heter': l_heter.item(), 'div': l_div.item()},
                                     global_step=step)
-                if (1+i) % 50 == 0:
+                if use_att and (1+i) % 50 == 0:
                     writer.add_scalar('att_mean', atts.mean().item(), global_step=step)
                 if (1+i) % 50 == 0:
                     print('LR:', get_lr(optimizer))
                     print('\tBatch %d\tloss div: %.4f (%.3f)\tloss homo: %.4f (%.3f)\tloss heter: %.4f (%.3f)'%\
                         (i, l_div.item(), loss_div/(i+1), l_homo.item(), loss_homo/(i+1), l_heter.item(), loss_heter/(i+1)))
-                    print('Loading: %.3f\tInference: %.3f\tLoss: %.3f\tBackward: %.3f\tOptimize: %.3f\tRest: %.3f'% \
-                                (load_time/total_time, forward_time/total_time, loss_time/total_time, backward_time/total_time, optimize_time/total_time, 1-(load_time+forward_time+optimize_time+loss_time+backward_time)/total_time))
+                # 各层的梯度
                 if (i+1) % 100 == 0:
                     writer.add_figure('grad_flow', util.plot_grad_flow_v2(model.named_parameters()), global_step=step//5)
-                if (i+1) % 200 == 0:
+                if use_att and (i+1) % 200 == 0:
                     img_inv = torch.cat([invTrans(x[i]).unsqueeze(0) for i in range(x.shape[0])], 0)
                     assert img_inv.shape == x.shape
                     writer.add_images('img', img_inv, global_step=step)

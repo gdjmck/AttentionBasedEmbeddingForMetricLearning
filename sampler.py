@@ -55,8 +55,12 @@ class BalancedBatchSampler(Sampler):
             for cls in classes:
                 cls_idxs = self.dataset[self.keys[cls]]
                 # for k in torch.multinomial(torch.Tensor([1/len(cls_idxs)]*len(cls_idxs)), self.batch_k):
+                batch += [cls_idxs[k] for k in np.random.choice(range(len(cls_idxs)), self.batch_k, False)]
+                '''
+                # 看是否list.append拖慢速度
                 for k in np.random.choice(range(len(cls_idxs)), self.batch_k, False):
                     batch.append(cls_idxs[k])
+                '''
             yield batch
 
     def __len__(self):

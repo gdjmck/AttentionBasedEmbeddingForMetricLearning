@@ -4,6 +4,7 @@ from matplotlib.lines import Line2D
 import time
 import logging
 import re
+import textwrap
 
 def merge_sequential_blanks(string):
     return re.sub(' +', ' ', string.strip(' '))
@@ -54,6 +55,9 @@ def plot_grad_flow_v2(named_parameters):
                 #print('no grad:', n)
                 continue
             n = n.replace('.weight', '').replace('inception', '').replace('branch', 'B').replace('conv', 'c')
+            # 如果长度大于10，每10个字符左右插入换行
+            if len(n) > 10:
+                n = n[:10] + '\n' + n[10:]
             layers.append(n)
             ave_grads.append(p.grad.abs().mean())
             max_grads.append(p.grad.abs().max())

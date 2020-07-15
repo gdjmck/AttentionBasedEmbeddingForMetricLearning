@@ -8,7 +8,7 @@ import os
 import util
 
 class MetricLearner(GoogLeNet.GoogLeNet):
-    def __init__(self, att_heads=8, pretrain=None, batch_k=5, normalize=False):
+    def __init__(self, att_heads=8, pretrain=None, batch_k=5, normalize=False, use_att=True):
         super(MetricLearner, self).__init__()
         if pretrain:
             if os.path.exists(pretrain):
@@ -19,12 +19,14 @@ class MetricLearner(GoogLeNet.GoogLeNet):
                 state_dict = torch.utils.model_zoo.load_url('https://download.pytorch.org/models/googlenet-1378be20.pth')
                 self.load_state_dict(state_dict)
         assert 512 % att_heads == 0
+        self.use_att = use_att
         self.att_heads = att_heads
         self.out_dim = int(512 / self.att_heads)
         self.att_depth = 480
+        self.att_a4_to_e4 = self.layer_a4_to_e4(True)
         self.att = nn.Conv2d(in_channels=832, out_channels=self.att_depth*self.att_heads, kernel_size=1, bias=False)
-        #self.last_pooling = nn.MaxPool2d(7)
-        self.last_pooling = nn.AvgPool2d(7)
+        self.last_pooling = nn.MaxPool2d(7)
+        #self.last_pooling = nn.AvgPool2d(7)
         self.last_fc = nn.Linear(1024, self.out_dim)
 
         self.sampled = DistanceWeightedSampling(batch_k=batch_k, normalize=normalize)
@@ -72,6 +74,20 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         #x = F.normalize(x)
         return x
 
+    def layer_a4_to_e4(self, pretrain=True):
+        a4 = GoogLeNet.Inception(480, 192, 96, 208, 16, 48, 64)
+        b4 = GoogLeNet.Inception(512, 160, 112, 224, 24, 64, 64)
+        c4 = GoogLeNet.Inception(512, 128, 128, 256, 24, 64, 64)
+        d4 = GoogLeNet.Inception(512, 112, 144, 288, 32, 64, 64)
+        e4 = GoogLeNet.Inception(528, 256, 160, 320, 32, 128, 128)
+        if pretrain:
+            a4.load_state_dict(self.inception4a.state_dict())
+            b4.load_state_dict(self.inception4b.state_dict())
+            c4.load_state_dict(self.inception4c.state_dict())
+            d4.load_state_dict(self.inception4d.state_dict())
+            e4.load_state_dict(self.inception4e.state_dict())
+        return nn.Sequential(a4, b4, c4, d4, e4)
+
     def a4_to_e4(self, x):
         # N x 480 x 14 x 14
         a4 = self.inception4a(x)
@@ -91,25 +107,30 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         # N x 3 x 224 x 224
         sp = self.feat_spatial(x)
         # N x 480 x 28 x 28
-        att_input = self.a4_to_e4(sp).detach()
-        # print('attend to:', sp.size())
-        atts = torch.sigmoid(self.att(att_input)) # att_heads * (N, depth, H, W)
-        #print('raw atts:', atts.size())
-        atts = atts.view(batchsize, self.att_heads, self.att_depth, sp.size(2), sp.size(3))
-        #print('atts:', atts.size())
-        sp_att = atts * sp.unsqueeze(1)
-        #print('sp_att raw:', sp_att.size())
-        # move attention dimension to batchsize dimension
-        sp_att = sp_att.view(-1, sp.size(1), sp.size(2), sp.size(3))
+        if self.use_att:
+            att_input = self.att_a4_to_e4(sp)
+            # print('attend to:', sp.size())
+            atts = torch.sigmoid(self.att(att_input)) # att_heads * (N, depth, H, W)
+            #print('raw atts:', atts.size())
+            atts = atts.view(batchsize, self.att_heads, self.att_depth, sp.size(2), sp.size(3))
+            #print('atts:', atts.size())
+            sp_att = atts * sp.unsqueeze(1)
+            #print('sp_att raw:', sp_att.size())
+            # move attention dimension to batchsize dimension
+            sp_att = sp_att.view(-1, sp.size(1), sp.size(2), sp.size(3))
+        else:
+            sp_att = sp
         #print('sp_att:', sp_att.size())
         embedding = self.feat_global(sp_att)
         # print('embedding in forward:', embedding.shape)
+        embedding = F.normalize(embedding, p=2, dim=-1)
         embedding = embedding.view(batchsize, -1)
         #embedding = torch.flatten(embedding, 1)
         if sampling:
-            return self.sampled(embedding) if not ret_att else (self.sampled(embedding), atts)
+            return self.sampled(embedding) if not (ret_att or self.use_att) \
+                             else (self.sampled(embedding), atts)
         else:
-            return (embedding, atts) if ret_att else embedding
+            return (embedding, atts) if (ret_att and self.use_att) else embedding
 
 def l2_norm(x):
     if len(x.shape):
