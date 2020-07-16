@@ -174,6 +174,7 @@ if __name__ == '__main__':
             model.train()
 
             loss_div, loss_homo, loss_heter, loss_center, loss_reg = 0, 0, 0, 0, 0
+            loss_exc = 0
             ticktime = time.time()
             #batch = next(iter(dataset))
             for i, batch in enumerate(dataset):
@@ -209,7 +210,7 @@ if __name__ == '__main__':
                     l_div, l_homo, l_heter = criterion.loss_func(embeddings, args.batch_k)
                 l_metric = l_homo + l_heter
                 if use_att:
-                    l_metric += l_div
+                    l_metric += l_div + atts_regularizer
                 loss_time = time.time() - loss_time
                 #l_reg = lambda_reg * criterion.regularization(model, reg_params)
                 #l_reg = torch.Tensor([0])
@@ -223,17 +224,18 @@ if __name__ == '__main__':
                 loss_homo += l_homo.item()
                 loss_heter += l_heter.item()
                 loss_div += l_div.item()
-                #loss_reg += l_reg.item()
-                #loss_center += l_centers.item()
+                loss_exc += atts_regularizer.item()
+
                 total_time = time.time() - ticktime
-                writer.add_scalars(main_tag='TrainLog', tag_scalar_dict={'homo': l_homo.item(), 'heter': l_heter.item(), 'div': l_div.item()},
+                writer.add_scalars(main_tag='TrainLog', tag_scalar_dict={'homo': l_homo.item(), 'heter': l_heter.item(), \
+                                            'div': l_div.item(), 'exc': atts_regularizer.item()},
                                     global_step=step)
                 if use_att and (1+i) % 50 == 0:
                     writer.add_scalar('att_mean', atts.mean().item(), global_step=step)
                 if (1+i) % 50 == 0:
                     print('LR:', get_lr(optimizer))
-                    print('\tBatch %d\tloss div: %.4f (%.3f)\tloss homo: %.4f (%.3f)\tloss heter: %.4f (%.3f)'%\
-                        (i, l_div.item(), loss_div/(i+1), l_homo.item(), loss_homo/(i+1), l_heter.item(), loss_heter/(i+1)))
+                    print('\tBatch %d\tloss div: %.4f (%.3f)\tloss homo: %.4f (%.3f)\tloss heter: %.4f (%.3f)\t exclusion: %.4f (%.3f)'%\
+                        (i, l_div.item(), loss_div/(i+1), l_homo.item(), loss_homo/(i+1), l_heter.item(), loss_heter/(i+1), atts_regularizer.item(), loss_exc/(i+1)))
                 # 各层的梯度
                 if (i+1) % 100 == 0:
                     writer.add_figure('grad_flow', util.plot_grad_flow_v2(model.named_parameters()), global_step=step//5)
@@ -249,8 +251,10 @@ if __name__ == '__main__':
             loss_homo /= (i+1)
             loss_heter /= (i+1)
             loss_div /= (i+1)
-            print('Epoch %d batches %d\tdiv:%.4f\thomo:%.4f\theter:%.4f'%(epoch, i+1, loss_div, loss_homo, loss_heter))
-            writer.add_scalars(main_tag='Train', tag_scalar_dict={'homo': loss_homo, 'heter': loss_heter, 'div': loss_div},
+            loss_exc /= (i+1)
+            print('Epoch %d batches %d\tdiv:%.4f\thomo:%.4f\theter:%.4f \t exclusion:%.4f'%\
+                    (epoch, i+1, loss_div, loss_homo, loss_heter, loss_exc))
+            writer.add_scalars(main_tag='Train', tag_scalar_dict={'homo': loss_homo, 'heter': loss_heter, 'div': loss_div, 'exc': loss_exc},
                                 global_step=epoch)
 
             # TEST PHASE
