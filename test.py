@@ -29,7 +29,7 @@ if __name__ == '__main__':
             img = img.to(train.device)
             embedding = model(img, sampling=False)
             embedding = embedding.view(batchsize, att_heads, -1)
-            embedding = train.F.normalize(embedding, 2, -1)
+            #embedding = train.F.normalize(embedding, 2, -1)
             embedding = embedding.view(-1, 512).cpu().numpy()
             for i, l in enumerate(label):
                 l = l.item()

@@ -29,7 +29,7 @@ sampling = False
 def get_args():
     parser = argparse.ArgumentParser(description='Face Occlusion Regression')
     # train
-    parser.add_argument('--pretrain', type=str, default='/root/.torch/models/googlenet-1378be20.pth', help='pretrain googLeNet model paht')
+    parser.add_argument('--pretrain', type=str, default='/root/.torch/models/googlenet-1378be20.pth', help='pretrain googLeNet model path')
     parser.add_argument('--att-heads', type=int, default=8, help='number of attention modules')
     parser.add_argument('--gpu_ids', type=str, default='0', help='gpu ids: e.g. 0  0,1,2, 0,2. use empty string for CPU')
     parser.add_argument('--epochs', type=int, default=200, help='number of epochs plans to train in total')
@@ -186,7 +186,7 @@ if __name__ == '__main__':
                 ret = model(x, sampling=sampling, ret_att=True)
                 if use_att:
                     embeddings, atts = ret
-                    atts_regularizer = criterion.exclusion_loss(atts)
+                    atts_regularizer = 100*criterion.exclusion_loss(atts)
                     print('criterion_loss: ', atts_regularizer.item())
                 else:
                     embeddings = ret

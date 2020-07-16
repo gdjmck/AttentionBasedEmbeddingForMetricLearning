@@ -22,15 +22,13 @@ def L_metric(feat1, feat2, same_class=True):
     
     d = L2_squared(feat1, feat2)
     if same_class:
-        return d.sum()
+        return d.mean() # 512/atts的mean
     else:
         # 因为在测试集上不同class的metric的L2距离也小于1
         d_heter = torch.clamp(m_c-d, min=0)
-        feat1_length = torch.clamp(feat1.pow(2).sum(1) - 1, min=0)
-        feat2_length = torch.clamp(feat2.pow(2).sum(1) - 1, min=0)
 
         #return ((1 + feat1_length * feat2_length) * d_heter).sum()
-        return d_heter.sum()
+        return d_heter.mean()
 
 def L_divergence(feats):
     '''
@@ -131,7 +129,7 @@ def regularization(model, layer_names):
 
 def exclusion_loss(att):
         att_size = att.size()
-        att = att.view((-1, att_size[-1]*att_size[-2])
+        att = att.view((-1, att_size[-1]*att_size[-2]))
         att_transformed = (att - 0.5).abs()
         loss = torch.exp(-1*att_transformed.sum(1))
         return loss.mean()
