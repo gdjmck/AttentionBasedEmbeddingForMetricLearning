@@ -131,7 +131,7 @@ def exclusion_loss(att):
         att_size = att.size()
         att = att.view((-1, att_size[-1]*att_size[-2]))
         att_transformed = (att - 0.5).abs()
-        loss = torch.exp(-1*att_transformed.sum(1))
+        loss = torch.exp(-1*att_transformed.mean(1))
         return loss.mean()
 
 

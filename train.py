@@ -186,8 +186,8 @@ if __name__ == '__main__':
                 ret = model(x, sampling=sampling, ret_att=True)
                 if use_att:
                     embeddings, atts = ret
-                    atts_regularizer = 100*criterion.exclusion_loss(atts)
-                    print('criterion_loss: ', atts_regularizer.item())
+                    atts_regularizer = criterion.exclusion_loss(atts)
+                    # print('criterion_loss: ', atts_regularizer.item())
                 else:
                     embeddings = ret
                 forward_time = time.time() - forward_time

@@ -106,7 +106,6 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         batchsize = x.size(0)
         # N x 3 x 224 x 224
         sp = self.feat_spatial(x)
-        import pdb; pdb.set_trace()
         # N x 480 x 28 x 28
         if self.use_att:
             att_input = self.att_a4_to_e4(sp)
