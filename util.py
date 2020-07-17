@@ -62,7 +62,7 @@ def plot_grad_flow_v2(named_parameters):
             ave_grads.append(p.grad.abs().mean())
             max_grads.append(p.grad.abs().max())
     #print('layers:', layers)
-    fig = plt.figure(1, figsize=(20, 5))
+    fig = plt.figure(1, figsize=(30, 5))
     plt.bar(np.arange(len(max_grads)), max_grads, alpha=0.1, lw=1, color="c")
     plt.bar(np.arange(len(max_grads)), ave_grads, alpha=0.1, lw=1, color="b")
     plt.hlines(0, 0, len(ave_grads)+1, lw=2, color="k" )

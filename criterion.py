@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 eps = 1e-4
-m_c = 1 # threshold for different class metric
+m_c = 0.8 # threshold for different class metric
 
 def L2_squared(x1, x2):
     '''
@@ -55,6 +55,23 @@ def loss_func(tensor, batch_k):
         for i in range(batch_size):
                 loss_div += L_divergence(tensor[i, ...])
 
+        for idx in range(batch_size):
+                group_idx = int(idx/batch_k)
+                anchor = tensor[idx: idx+1, ...]
+                anchor_homo = anchor.expand_as(tensor[:batch_k-1, ...]).contiguous().detach() # homo不包括自己
+                # homo对应每个batch item的slicing
+                slice_homo = [False]*batch_size
+                slice_homo[group_idx*batch_k: (group_idx+1)*batch_k] = [True]*batch_k
+                slice_homo[idx] = False
+                loss_homo += L_metric(anchor_homo, tensor[slice_homo, ...])
+
+                anchor_heter = anchor.expand_as(tensor[:-batch_k, ...]).contiguous().detach()
+                slice_heter = [True]*batch_size
+                slice_heter[group_idx*batch_k: (group_idx+1)*batch_k] = [False]*batch_k
+                loss_heter += L_metric(anchor_heter, tensor[slice_heter, ...], same_class=False)
+        return loss_div / batch_size, loss_homo/batch_size, loss_heter/batch_size
+
+        '''
         cnt_homo, cnt_heter = 0, 0
         for group_index in range(batch_size // batch_k):
                 for i in range(batch_k):
@@ -67,6 +84,7 @@ def loss_func(tensor, batch_k):
                                 loss_heter += L_metric(anchor, tensor[j:j+1, ...], same_class=False)
                                 cnt_heter += 1
         return loss_div / batch_size, loss_homo/cnt_homo, loss_heter/cnt_heter
+        '''
 
 def criterion(anchors, positives, negatives):
         loss_homo = L_metric(anchors, positives)
@@ -136,8 +154,5 @@ def exclusion_loss(att):
 
 
 if __name__ == '__main__':
-        a = torch.randn(2, 3)
-        b = torch.randn(2, 3)
-        print('a&b:', a.size())
-        print(L2_squared(a, b).size())
-        print(a, torch.exp(a))
+        a = torch.randn(10, 8, 512//8)
+        print(loss_func(a, batch_k=2))
