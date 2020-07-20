@@ -82,7 +82,6 @@ else:
 #dataset_test = torch.utils.data.DataLoader(data_test, batch_sampler=BalancedBatchSampler(data_test, batch_size=args.batch, batch_k=args.batch_k, length=args.num_batch//2))
 use_att = args.att_heads > 1
 model = MetricLearner(pretrain=args.pretrain, normalize=True, batch_k=args.batch_k, att_heads=args.att_heads, use_att=use_att)
-reg_params = ['inception4a', 'inception4b', 'inception4c', 'inception4d', 'inception4e']
 if not os.path.exists(args.ckpt):
     os.makedirs(args.ckpt)
     print('Init ', args.ckpt)
@@ -104,7 +103,7 @@ else:
 model = model.to(device)
 #summary(model, (3, 224, 224))
 optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.95, weight_decay=1e-4)
-
+L2_loss = torch.nn.MSELoss()
 
 
 step = 0
@@ -183,15 +182,14 @@ if __name__ == '__main__':
                 x, y = batch
                 x = x.to(device)
 
-                forward_time = time.time()
                 ret = model(x, sampling=sampling, ret_att=True)
                 if use_att:
                     embeddings, atts = ret
                     atts_regularizer = criterion.exclusion_loss(atts)
+                    loss_exc += atts_regularizer.item()
                     # print('criterion_loss: ', atts_regularizer.item())
                 else:
                     embeddings = ret
-                forward_time = time.time() - forward_time
                 if sampling:
                     _, anchors, positives, negatives, _ = embeddings
                     anchors = F.normalize(anchors.view(anchors.size(0), args.att_heads, -1), 2, -1)
@@ -203,7 +201,6 @@ if __name__ == '__main__':
                     embeddings = embeddings.view(embeddings.size(0), args.att_heads, -1)
 
                 #l_div, l_homo, l_heter = criterion.criterion(anchors, positives, negatives)
-                loss_time = time.time()
                 if sampling:
                     l_div, l_homo, l_heter = criterion.criterion(anchors, positives, negatives)
                 else:
@@ -211,11 +208,8 @@ if __name__ == '__main__':
                 l_metric = l_homo + l_heter
                 if use_att:
                     l_metric += l_div + atts_regularizer
-                loss_time = time.time() - loss_time
-                #l_reg = lambda_reg * criterion.regularization(model, reg_params)
-                #l_reg = torch.Tensor([0])
                 optimizer.zero_grad()
-                l_metric.backward(retain_graph=True)
+                l_metric.backward()
 
                 optimizer.step()
 
@@ -226,16 +220,15 @@ if __name__ == '__main__':
                 loss_div += l_div.item()
                 loss_exc += atts_regularizer.item()
 
-                total_time = time.time() - ticktime
                 writer.add_scalars(main_tag='TrainLog', tag_scalar_dict={'homo': l_homo.item(), 'heter': l_heter.item(), \
-                                            'div': l_div.item(), 'exc': atts_regularizer.item()},
+                                            'div': l_div.item(), 'exc': atts_regularizer.item() if use_att else 0},
                                     global_step=step)
                 if use_att and (1+i) % 50 == 0:
                     writer.add_scalar('att_mean', atts.mean().item(), global_step=step)
                 if (1+i) % 50 == 0:
                     print('LR:', get_lr(optimizer))
                     print('\tBatch %d\tloss div: %.4f (%.3f)\tloss homo: %.4f (%.3f)\tloss heter: %.4f (%.3f)\t exclusion: %.4f (%.3f)'%\
-                        (i, l_div.item(), loss_div/(i+1), l_homo.item(), loss_homo/(i+1), l_heter.item(), loss_heter/(i+1), atts_regularizer.item(), loss_exc/(i+1)))
+                        (i, l_div.item(), loss_div/(i+1), l_homo.item(), loss_homo/(i+1), l_heter.item(), loss_heter/(i+1), atts_regularizer.item() if use_att else 0, loss_exc/(i+1)))
                 # 各层的梯度
                 if (i+1) % 100 == 0:
                     writer.add_figure('grad_flow', util.plot_grad_flow_v2(model.named_parameters()), global_step=step//5)
@@ -247,7 +240,6 @@ if __name__ == '__main__':
                         writer.add_images('avg_attention %d'%ai, atts[:, ai, ...].mean(dim=1, keepdim=True))
                         writer.add_images('attention %d'%ai, atts[:, ai, 0:1, ...], global_step=step)
                     step += 1
-                ticktime = time.time()
             loss_homo /= (i+1)
             loss_heter /= (i+1)
             loss_div /= (i+1)

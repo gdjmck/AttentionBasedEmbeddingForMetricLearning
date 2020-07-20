@@ -24,7 +24,7 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         self.out_dim = int(512 / self.att_heads)
         self.att_depth = 480
         self.att_a4_to_e4 = self.layer_a4_to_e4(True)
-        self.att = nn.Conv2d(in_channels=832, out_channels=self.att_depth*self.att_heads, kernel_size=1, bias=False)
+        self.att = nn.Conv2d(in_channels=832, out_channels=self.att_heads, kernel_size=1, bias=False)
         self.last_pooling = nn.MaxPool2d(7)
         #self.last_pooling = nn.AvgPool2d(7)
         self.last_fc = nn.Linear(1024, self.out_dim)
@@ -108,19 +108,19 @@ class MetricLearner(GoogLeNet.GoogLeNet):
         sp = self.feat_spatial(x)
         # N x 480 x 28 x 28
         if self.use_att:
-            att_input = self.att_a4_to_e4(sp)
+            att_input = self.att_a4_to_e4(sp.detach())
             # print('attend to:', sp.size())
             atts = torch.sigmoid(self.att(att_input)) # att_heads * (N, depth, H, W)
-            #print('raw atts:', atts.size())
-            atts = atts.view(batchsize, self.att_heads, self.att_depth, sp.size(2), sp.size(3))
-            #print('atts:', atts.size())
+            # print('raw atts:', atts.size())
+            atts = atts.view(batchsize, self.att_heads, 1, sp.size(2), sp.size(3))
+            # print('atts:', atts.size())
             sp_att = atts * sp.unsqueeze(1)
-            #print('sp_att raw:', sp_att.size())
+            # print('sp_att raw:', sp_att.size())
             # move attention dimension to batchsize dimension
             sp_att = sp_att.view(-1, sp.size(1), sp.size(2), sp.size(3))
         else:
             sp_att = sp
-        #print('sp_att:', sp_att.size())
+        # print('sp_att:', sp_att.size())
         embedding = self.feat_global(sp_att)
         # print('embedding in forward:', embedding.shape)
         embedding = F.normalize(embedding, p=2, dim=-1)
